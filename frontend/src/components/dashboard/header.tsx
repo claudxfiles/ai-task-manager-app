@@ -13,6 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import { UserInfo } from "@/components/auth/user-info";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { useAuthStatus } from "@/hooks/useAuthStatus";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -20,6 +23,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const { user, isDemoSession } = useAuthStatus();
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,27 +60,34 @@ export function Header({ onMenuClick }: HeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Settings */}
+          {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Settings className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 p-0">
+                <UserInfo showName={false} showBadge={false} avatarSize="sm" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="p-2">
+                <UserInfo showEmail={true} />
+                {isDemoSession && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Sesión de demostración
+                  </div>
+                )}
+              </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings" className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Perfil</span>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Configuración</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/" className="cursor-pointer">
+              <DropdownMenuItem>
+                <LogoutButton variant="ghost" size="sm" className="w-full justify-start p-0 h-auto font-normal">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Cerrar sesión</span>
-                </Link>
+                </LogoutButton>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

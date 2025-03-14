@@ -1,25 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, ArrowLeft } from "lucide-react";
+import { Brain, ArrowLeft, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { FormError } from "@/components/auth/form-error";
+import { PasswordInput } from "@/components/auth/password-input";
+import { LoadingButton } from "@/components/ui/loading-button";
+import { signIn } from "next-auth/react";
+import { toast } from "sonner";
+import Cookies from 'js-cookie';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const error = searchParams.get("error");
+
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false
   });
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+
+  // Mostrar error de URL si existe
+  useEffect(() => {
+    if (error) {
+      setFormError("Hubo un problema con la autenticación. Por favor, inténtalo de nuevo.");
+    }
+  }, [error]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,43 +45,52 @@ export default function LoginPage() {
     }));
     
     // Clear error when user types
-    if (error) setError("");
+    if (formError) setFormError("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.email || !formData.password) {
-      setError("Por favor, completa todos los campos");
+    // Validación básica
+    if (!formData.email) {
+      setFormError("Por favor, ingresa tu correo electrónico");
+      return;
+    }
+    
+    if (!formData.password) {
+      setFormError("Por favor, ingresa tu contraseña");
+      return;
+    }
+    
+    // Si las credenciales son las del usuario demo, usar la ruta de demo
+    if (formData.email === "demo@example.com" && formData.password === "demo123") {
+      handleDemoLogin();
       return;
     }
     
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8000/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          'username': formData.email,
-          'password': formData.password,
-        })
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
       });
 
-      if (!response.ok) {
-        throw new Error('Credenciales incorrectas');
+      if (result?.error) {
+        setFormError("Credenciales incorrectas. Inténtalo de nuevo.");
+        return;
       }
 
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token);
-      
-      // Redirigir al dashboard después del inicio de sesión exitoso
-      router.push("/dashboard");
+      // Mostrar toast de éxito
+      toast.success("Inicio de sesión exitoso", {
+        description: "Redirigiendo al dashboard..."
+      });
+
+      router.push(callbackUrl);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
-      setError("Credenciales incorrectas. Inténtalo de nuevo.");
+      setFormError("Error al iniciar sesión. Por favor, inténtalo de nuevo más tarde.");
     } finally {
       setIsLoading(false);
     }
@@ -75,29 +100,31 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:8000/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          'username': 'demo@example.com',
-          'password': 'demo123',
-        })
+      // Simular un retraso para la experiencia de usuario
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Establecer una cookie para la sesión demo
+      Cookies.set('demo_session', 'true', { expires: 1 });
+      
+      // Establecer datos de usuario demo en localStorage para simular una sesión
+      localStorage.setItem('demoUser', JSON.stringify({
+        id: 'demo-user',
+        email: 'demo@example.com',
+        name: 'Usuario Demo',
+        role: 'user',
+        credits: 1000
+      }));
+      
+      // Mostrar toast de éxito
+      toast.success("Inicio de sesión demo exitoso", {
+        description: "Redirigiendo al dashboard..."
       });
-
-      if (!response.ok) {
-        throw new Error('Error al iniciar sesión demo');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token);
       
       // Redirigir al dashboard
-      router.push("/dashboard");
+      router.push(callbackUrl);
     } catch (error) {
       console.error("Error al iniciar sesión demo:", error);
-      setError("Error al iniciar sesión demo. Inténtalo de nuevo.");
+      setFormError("Error al iniciar sesión demo. Por favor, inténtalo de nuevo más tarde.");
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +162,7 @@ export default function LoginPage() {
           <CardContent className="space-y-4">
             <GoogleSignInButton 
               variant="default" 
-              className="bg-soul-purple hover:bg-soul-purple/90"
+              className="bg-soul-purple hover:bg-soul-purple/90 w-full"
               text="Iniciar Sesión con Google" 
             />
             
@@ -157,10 +184,12 @@ export default function LoginPage() {
                   id="email" 
                   name="email" 
                   type="email" 
-                  placeholder="tu@ejemplo.com" 
+                  placeholder="demo@example.com" 
                   value={formData.email}
                   onChange={handleChange}
                   disabled={isLoading}
+                  className="focus:border-soul-purple focus:ring-soul-purple/20"
+                  aria-invalid={formError && !formData.email ? "true" : "false"}
                 />
               </div>
               
@@ -171,44 +200,31 @@ export default function LoginPage() {
                     ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  name="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                />
+                <div className="relative">
+                  <PasswordInput
+                    id="password" 
+                    name="password" 
+                    placeholder="••••••••" 
+                    value={formData.password}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className="focus:border-soul-purple focus:ring-soul-purple/20"
+                    aria-invalid={formError && !formData.password ? "true" : "false"}
+                  />
+                </div>
               </div>
               
-              {error && (
-                <motion.p
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-destructive text-sm"
-                >
-                  {error}
-                </motion.p>
-              )}
+              <FormError message={formError} />
               
-              <Button 
+              <LoadingButton 
                 type="submit" 
-                className="w-full bg-soul-purple hover:bg-soul-purple/90" 
-                disabled={isLoading}
+                variant="purple"
+                className="w-full" 
+                isLoading={isLoading}
+                loadingText="Iniciando sesión..."
               >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Iniciando sesión...
-                  </span>
-                ) : (
-                  "Iniciar Sesión"
-                )}
-              </Button>
+                Iniciar Sesión
+              </LoadingButton>
             </form>
             
             <div className="relative my-4">
@@ -222,22 +238,21 @@ export default function LoginPage() {
               </div>
             </div>
             
-            <Button 
+            <LoadingButton 
               variant="outline" 
               className="w-full" 
               onClick={handleDemoLogin}
-              disabled={isLoading}
+              isLoading={isLoading}
+              loadingText="Iniciando sesión demo..."
             >
               Cuenta Demo
-            </Button>
+            </LoadingButton>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <div className="text-center text-sm">
-              ¿No tienes una cuenta?{" "}
-              <Link href="/auth/register" className="text-soul-purple hover:underline font-medium">
-                Regístrate
-              </Link>
-            </div>
+          <CardFooter className="text-center text-sm text-muted-foreground">
+            ¿No tienes una cuenta?{" "}
+            <Link href="/auth/register" className="text-soul-purple hover:underline">
+              Regístrate
+            </Link>
           </CardFooter>
         </Card>
       </motion.div>

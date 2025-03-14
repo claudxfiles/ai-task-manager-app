@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { signIn } from "next-auth/react";
 
 interface GoogleSignInButtonProps {
   className?: string;
@@ -20,30 +20,16 @@ export function GoogleSignInButton({
   size = "default"
 }: GoogleSignInButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { signInWithGoogle } = useAuth();
 
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
-      await signInWithGoogle();
-      // La redirección se maneja en el hook useAuth
-    } catch (error: any) {
+      await signIn("google", { callbackUrl: "/dashboard" });
+    } catch (error) {
       console.error("Error al iniciar sesión con Google:", error);
-      
-      // Mensajes de error personalizados según el tipo de error
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast.error("Inicio de sesión cancelado", {
-          description: "Has cerrado la ventana de inicio de sesión."
-        });
-      } else if (error.code === 'auth/popup-blocked') {
-        toast.error("Ventana emergente bloqueada", {
-          description: "Por favor, permite ventanas emergentes para este sitio e inténtalo de nuevo."
-        });
-      } else {
-        toast.error("Error de autenticación", {
-          description: "No se pudo iniciar sesión con Google. Por favor, inténtalo de nuevo más tarde."
-        });
-      }
+      toast.error("Error de autenticación", {
+        description: "No se pudo iniciar sesión con Google. Por favor, inténtalo de nuevo más tarde."
+      });
     } finally {
       setIsLoading(false);
     }
