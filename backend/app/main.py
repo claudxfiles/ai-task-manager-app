@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 import redis
 from .task_router import router as task_router
+import httpx
 
 # Cargar variables de entorno
 load_dotenv()
@@ -44,7 +45,7 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:3000")],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -54,9 +55,11 @@ app.add_middleware(
 app.include_router(task_router, prefix="/api", tags=["tasks"])
 
 # Cliente OpenAI global
+http_client = httpx.AsyncClient()
 client = AsyncOpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url=os.getenv("BASE_URL")
+    base_url=os.getenv("BASE_URL"),
+    http_client=http_client
 )
 
 # Modelos Pydantic
@@ -142,10 +145,6 @@ async def chat(
     
     try:
         stream = await client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "https://your-site.com",
-                "X-Title": "Your Application",
-            },
             model=request.model,
             messages=[
                 {

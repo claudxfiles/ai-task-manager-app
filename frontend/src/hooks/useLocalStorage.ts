@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   // Estado para almacenar nuestro valor
   // Pasa la función de inicialización a useState para que la lógica se ejecute solo una vez
   const [storedValue, setStoredValue] = useState<T>(() => {
@@ -21,7 +21,7 @@ export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T)
   });
 
   // Devolver una versión envuelta de la función setter de useState que persiste el nuevo valor en localStorage
-  const setValue = (value: T) => {
+  const setValue: Dispatch<SetStateAction<T>> = (value) => {
     try {
       // Permitir que value sea una función para que tengamos la misma API que useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;

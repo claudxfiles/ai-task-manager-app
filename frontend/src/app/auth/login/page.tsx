@@ -43,9 +43,23 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      // En una implementación real, aquí se usaría NextAuth.js para la autenticación
-      // Por ahora, simulamos un inicio de sesión exitoso
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('http://localhost:8000/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'username': formData.email,
+          'password': formData.password,
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Credenciales incorrectas');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.access_token);
       
       // Redirigir al dashboard después del inicio de sesión exitoso
       router.push("/dashboard");
@@ -61,8 +75,23 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      // Simulamos un inicio de sesión con cuenta demo
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('http://localhost:8000/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          'username': 'demo@example.com',
+          'password': 'demo123',
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al iniciar sesión demo');
+      }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.access_token);
       
       // Redirigir al dashboard
       router.push("/dashboard");
