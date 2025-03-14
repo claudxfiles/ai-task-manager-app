@@ -1,305 +1,169 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-
-// Definición de interfaces
-interface Exercise {
-  id: string;
-  name: string;
-  equipment: string;
-  description: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  primaryMuscle: string;
-  secondaryMuscles?: string[];
-}
-
-interface MuscleGroup {
-  id: string;
-  name: string;
-  image: string;
-}
-
-// Datos de grupos musculares
-const muscleGroups: MuscleGroup[] = [
-  { id: 'chest', name: 'Chest', image: '/images/workout/Chest.png' },
-  { id: 'abs', name: 'Abs', image: '/images/workout/abs.png' },
-  { id: 'biceps', name: 'Biceps', image: '/images/workout/Biceps.png' },
-  { id: 'forearms', name: 'Forearms', image: '/images/workout/forearms.png' },
-  { id: 'shoulders', name: 'Shoulders', image: '/images/workout/Shoulder.png' },
-  { id: 'triceps', name: 'Triceps', image: '/images/workout/triceps.png' },
-  { id: 'quadriceps', name: 'Quadriceps', image: '/images/workout/Quadriceps.png' },
-  { id: 'hamstrings', name: 'Hamstrings', image: '/images/workout/Hamstring.png' },
-  { id: 'calves', name: 'Calves', image: '/images/workout/Calves.png' },
-  { id: 'glutes', name: 'Glutes', image: '/images/workout/Glutes.png' },
-  { id: 'obliques', name: 'Obliques', image: '/images/workout/Obliques.png' },
-];
-
-// Datos de ejercicios
-const exercisesData: Exercise[] = [
-  {
-    id: 'bench-press',
-    name: 'Bench Press',
-    equipment: 'barbell',
-    description: 'Primary chest exercise',
-    difficulty: 'intermediate',
-    primaryMuscle: 'chest',
-  },
-  {
-    id: 'push-up',
-    name: 'Push-Up',
-    equipment: 'bodyweight',
-    description: 'Basic chest exercise',
-    difficulty: 'beginner',
-    primaryMuscle: 'chest',
-  },
-  {
-    id: 'dumbbell-fly',
-    name: 'Dumbbell Fly',
-    equipment: 'dumbbell',
-    description: 'Chest isolation movement',
-    difficulty: 'beginner',
-    primaryMuscle: 'chest',
-  },
-  {
-    id: 'incline-press',
-    name: 'Incline Press',
-    equipment: 'barbell',
-    description: 'Upper chest focus',
-    difficulty: 'intermediate',
-    primaryMuscle: 'chest',
-  },
-  {
-    id: 'bicep-curl',
-    name: 'Bicep Curl',
-    equipment: 'dumbbell',
-    description: 'Basic bicep exercise',
-    difficulty: 'beginner',
-    primaryMuscle: 'biceps',
-  },
-  {
-    id: 'hammer-curl',
-    name: 'Hammer Curl',
-    equipment: 'dumbbell',
-    description: 'Works biceps and forearms',
-    difficulty: 'beginner',
-    primaryMuscle: 'biceps',
-  },
-  {
-    id: 'crunch',
-    name: 'Crunch',
-    equipment: 'bodyweight',
-    description: 'Basic ab exercise',
-    difficulty: 'beginner',
-    primaryMuscle: 'abs',
-  },
-  {
-    id: 'leg-raise',
-    name: 'Leg Raise',
-    equipment: 'bodyweight',
-    description: 'Lower abs focus',
-    difficulty: 'intermediate',
-    primaryMuscle: 'abs',
-  },
-];
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { History, Calendar, Play, Dumbbell } from 'lucide-react';
+import { muscleGroups, muscleDetails, workoutPrograms } from '@/data/workout-data';
+import { MuscleGroup, WorkoutProgram } from '@/types/workout';
+import { AnatomicalView } from '@/components/workout/anatomical-view';
 
 export default function WorkoutPage() {
-  const [activeTab, setActiveTab] = useState('ejercicios');
-  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string | null>(null);
-  const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
+  const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<WorkoutProgram | null>(null);
 
-  // Filtrar ejercicios por grupo muscular
-  const filteredExercises = selectedMuscleGroup
-    ? exercisesData.filter(exercise => exercise.primaryMuscle === selectedMuscleGroup)
-    : [];
-
-  // Manejar la selección de un grupo muscular
-  const handleMuscleGroupClick = (muscleGroupId: string) => {
-    setSelectedMuscleGroup(muscleGroupId);
-  };
-
-  // Manejar la adición de un ejercicio a la rutina
-  const handleAddExerciseToRoutine = (exercise: Exercise) => {
-    if (!selectedExercises.some(e => e.id === exercise.id)) {
-      setSelectedExercises([...selectedExercises, exercise]);
-    }
-  };
-
-  // Obtener el color de la dificultad
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner':
-        return 'bg-green-100 text-green-800';
-      case 'intermediate':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'advanced':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleMuscleHover = (muscle: string | null) => {
+    setHoveredMuscle(muscle);
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <Tabs defaultValue="ejercicios" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 mb-8">
-          <TabsTrigger value="ejercicios">Ejercicios</TabsTrigger>
-          <TabsTrigger value="rutinas">Rutinas</TabsTrigger>
-          <TabsTrigger value="historial">Historial</TabsTrigger>
-        </TabsList>
+    <div className="container py-8 space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Entrenamiento</h1>
+          <p className="text-muted-foreground">
+            Explora grupos musculares y rutinas personalizadas
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <Button variant="outline" size="icon">
+            <History className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon">
+            <Calendar className="h-4 w-4" />
+          </Button>
+          <Button>
+            <Play className="h-4 w-4 mr-2" />
+            Iniciar Entrenamiento
+          </Button>
+        </div>
+      </div>
 
-        <TabsContent value="ejercicios" className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Grupos Musculares */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Grupos Musculares</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
-                  {muscleGroups.map((group) => (
-                    <motion.div
-                      key={group.id}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleMuscleGroupClick(group.id)}
-                      className={`flex flex-col items-center cursor-pointer p-2 rounded-lg ${
-                        selectedMuscleGroup === group.id ? 'bg-primary/10 ring-2 ring-primary' : ''
+      {/* Main Content */}
+      <div className="grid grid-cols-12 gap-8">
+        {/* Left Column - Anatomical View */}
+        <div className="col-span-5">
+          <Card className="p-6">
+            <AnatomicalView
+              selectedMuscle={selectedMuscle}
+              muscleDetails={muscleDetails}
+              onMuscleHover={handleMuscleHover}
+              hoveredMuscle={hoveredMuscle}
+            />
+          </Card>
+        </div>
+
+        {/* Right Column - Muscle Groups & Workouts */}
+        <div className="col-span-7">
+          <Tabs defaultValue="muscles">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="muscles">Grupos Musculares</TabsTrigger>
+              <TabsTrigger value="workouts">Rutinas</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="muscles" className="mt-6">
+              <div className="grid grid-cols-2 gap-4">
+                {muscleGroups.map((group) => (
+                  <motion.div
+                    key={group.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`p-4 cursor-pointer bg-gradient-to-br ${group.color} ${
+                        selectedMuscle?.id === group.id ? 'ring-2 ring-primary' : ''
                       }`}
+                      onClick={() => setSelectedMuscle(group)}
                     >
-                      <div className="relative w-16 h-16 mb-2">
-                        <Image
-                          src={group.image}
-                          alt={group.name}
-                          fill
-                          style={{ objectFit: 'contain' }}
-                        />
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-background/10 rounded-lg">
+                          <Dumbbell className="h-6 w-6 text-background" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-background">
+                            {group.name}
+                          </h3>
+                          <p className="text-sm text-background/80">
+                            {group.exercises} ejercicios
+                          </p>
+                        </div>
                       </div>
-                      <span className="text-xs text-center font-medium">{group.name}</span>
+                      <div className="mt-4">
+                        <p className="text-xs text-background/90 font-medium">
+                          Músculos principales:
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {group.muscles.map((muscle) => (
+                            <span
+                              key={muscle}
+                              className="text-xs px-2 py-1 rounded-full bg-background/20 text-background"
+                            >
+                              {muscle}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="workouts" className="mt-6">
+              <ScrollArea className="h-[600px] pr-4">
+                <div className="space-y-4">
+                  {workoutPrograms.map((program) => (
+                    <motion.div
+                      key={program.id}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Card className="p-6">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold">
+                              {program.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {program.description}
+                            </p>
+                            <div className="flex gap-4 mt-4">
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {program.duration} min
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Flame className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {program.calories} kcal
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => setActiveWorkout(program)}
+                            variant="secondary"
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            Iniciar
+                          </Button>
+                        </div>
+                      </Card>
                     </motion.div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Biblioteca de Ejercicios */}
-            {selectedMuscleGroup && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Biblioteca de Ejercicios</CardTitle>
-                  <CardDescription>
-                    {muscleGroups.find(g => g.id === selectedMuscleGroup)?.name || 'Selecciona un grupo muscular'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredExercises.map((exercise) => (
-                      <Card key={exercise.id} className="overflow-hidden">
-                        <CardHeader className="p-4">
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{exercise.name}</CardTitle>
-                            <Badge className={getDifficultyColor(exercise.difficulty)}>
-                              {exercise.difficulty}
-                            </Badge>
-                          </div>
-                          <CardDescription className="flex items-center gap-2">
-                            <span className="capitalize">{exercise.equipment}</span>
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <p className="text-sm text-muted-foreground">{exercise.description}</p>
-                        </CardContent>
-                        <CardFooter className="p-4 pt-0 flex justify-between">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {}}
-                          >
-                            Ver Detalles
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={() => handleAddExerciseToRoutine(exercise)}
-                          >
-                            Agregar a Rutina
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="rutinas">
-          <Card>
-            <CardHeader>
-              <CardTitle>Mis Rutinas</CardTitle>
-              <CardDescription>Crea y gestiona tus rutinas de entrenamiento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedExercises.length > 0 ? (
-                <div className="grid gap-4">
-                  {selectedExercises.map((exercise) => (
-                    <Card key={exercise.id} className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium">{exercise.name}</h3>
-                          <p className="text-sm text-muted-foreground">{exercise.description}</p>
-                        </div>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => setSelectedExercises(selectedExercises.filter(e => e.id !== exercise.id))}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No has agregado ejercicios a tu rutina</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setActiveTab('ejercicios')}
-                  >
-                    Explorar Ejercicios
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-            {selectedExercises.length > 0 && (
-              <CardFooter>
-                <Button className="w-full">Guardar Rutina</Button>
-              </CardFooter>
-            )}
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="historial">
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial de Entrenamientos</CardTitle>
-              <CardDescription>Seguimiento de tus sesiones de entrenamiento</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No hay entrenamientos registrados</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
