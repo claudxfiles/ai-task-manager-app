@@ -8,13 +8,20 @@ from .models import Task as TaskModel, TaskStatus, TaskPriority, AISuggestion
 from .auth import get_current_user
 from .database import get_db
 from openai import AsyncOpenAI
+import httpx
 import os
 from .enums import TaskStatus as TaskStatusEnum, TaskPriority as TaskPriorityEnum
 
 router = APIRouter()
+
+# Create httpx client
+http_client = httpx.AsyncClient()
+
+# Create OpenAI client
 ai_client = AsyncOpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url=os.getenv("BASE_URL")
+    base_url=os.getenv("BASE_URL"),
+    http_client=http_client
 )
 
 # Modelos Pydantic
@@ -128,7 +135,13 @@ async def generate_ai_suggestions(task: TaskModel, db: Session):
         response = await ai_client.chat.completions.create(
             model="qwen/qwq-32b:online",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
+            temperature=0.7,
+            extra_body={
+                "provider": {
+                    "order": ["Groq", "Fireworks"],
+                    "allow_fallbacks": False
+                }
+            }
         )
         
         suggestion = AISuggestion(

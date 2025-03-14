@@ -31,7 +31,7 @@ const formatTime = () => {
   return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 };
 
-const initialMessages = [{
+const initialMessages: Message[] = [{
   id: 1,
   content: "¡Hola! Soy tu asistente personal de SoulDream. Cuéntame sobre tu meta y te crearé un plan detallado para alcanzarla.",
   sender: "ai",
@@ -40,7 +40,7 @@ const initialMessages = [{
 
 export default function AiChatPage() {
   const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useLocalStorage("chat_messages", initialMessages);
+  const [messages, setMessages] = useLocalStorage<Message[]>("chat_messages", initialMessages);
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -57,27 +57,65 @@ export default function AiChatPage() {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    const userMessage = {
+    const token = localStorage.getItem('token');
+    console.log('Token:', token);
+
+    const newUserMessage: Message = {
       id: Date.now(),
       content: inputMessage,
       sender: "user",
       timestamp: formatTime(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages([...messages, newUserMessage]);
     setInputMessage("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const aiMessage = {
+    try {
+      console.log('Enviando mensaje al servidor...');
+      const response = await fetch('http://localhost:8000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          message: inputMessage,
+          model: "qwen/qwq-32b:online"
+        }),
+      });
+
+      console.log('Respuesta del servidor:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error data:', errorData);
+        throw new Error(errorData.detail || 'Error en la respuesta del servidor');
+      }
+
+      const data = await response.json();
+      
+      const newAiMessage: Message = {
         id: Date.now(),
-        content: "Entiendo tu meta. Déjame ayudarte a crear un plan detallado para alcanzarla.",
+        content: data.response,
         sender: "ai",
         timestamp: formatTime(),
       };
-      setMessages([...messages, userMessage, aiMessage]);
+
+      setMessages((prevMessages: Message[]) => [...prevMessages, newUserMessage, newAiMessage]);
+    } catch (error) {
+      console.error('Error:', error);
+      const errorMessage: Message = {
+        id: Date.now(),
+        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.",
+        sender: "ai",
+        timestamp: formatTime(),
+      };
+      setMessages((prevMessages: Message[]) => [...prevMessages, newUserMessage, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const clearConversation = () => {
