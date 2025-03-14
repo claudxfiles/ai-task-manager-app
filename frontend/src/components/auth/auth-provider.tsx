@@ -2,18 +2,25 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { SessionProvider } from 'next-auth/react';
 
 // Crear el contexto de autenticación
 const AuthContext = createContext<ReturnType<typeof useAuth> | undefined>(undefined);
 
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
 // Proveedor de autenticación
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: AuthProviderProps) {
   const auth = useAuth();
   
   return (
-    <AuthContext.Provider value={auth}>
-      {children}
-    </AuthContext.Provider>
+    <SessionProvider>
+      <AuthContext.Provider value={auth}>
+        {children}
+      </AuthContext.Provider>
+    </SessionProvider>
   );
 }
 
