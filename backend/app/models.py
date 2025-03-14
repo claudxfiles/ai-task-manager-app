@@ -3,13 +3,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .enums import TaskStatus, TaskPriority
-from .database import Base
+from .database import Base, supabase
 from sqlalchemy.sql import func
+import uuid
 
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
@@ -25,23 +26,41 @@ class User(Base):
     subscription = relationship("Subscription", back_populates="user")
     goals = relationship("Goal", back_populates="user")
 
+    @classmethod
+    async def create_rls_policies(cls):
+        """Crear políticas RLS para la tabla users"""
+        await supabase.rpc('create_auth_policy', {
+            'table_name': 'users',
+            'policy_name': 'users_policy',
+            'policy_definition': 'auth.uid() = id'
+        })
+
 class Project(Base):
     __tablename__ = "projects"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String)
     description = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+    user_id = Column(String, ForeignKey("users.id"))
     
     user = relationship("User", back_populates="projects")
     tasks = relationship("Task", back_populates="project")
 
+    @classmethod
+    async def create_rls_policies(cls):
+        """Crear políticas RLS para la tabla projects"""
+        await supabase.rpc('create_auth_policy', {
+            'table_name': 'projects',
+            'policy_name': 'projects_policy',
+            'policy_definition': 'auth.uid() = user_id'
+        })
+
 class Task(Base):
     __tablename__ = "tasks"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String, nullable=False)
     description = Column(Text)
     status = Column(String, default="pendiente")
@@ -53,10 +72,10 @@ class Task(Base):
     completed_at = Column(DateTime, nullable=True)
     resources = Column(Text)  # JSON string para recursos
     
-    user_id = Column(Integer, ForeignKey("users.id"))
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
-    parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
-    goal_id = Column(Integer, ForeignKey("goals.id"), nullable=True)
+    user_id = Column(String, ForeignKey("users.id"))
+    project_id = Column(String, ForeignKey("projects.id"), nullable=True)
+    parent_task_id = Column(String, ForeignKey("tasks.id"), nullable=True)
+    goal_id = Column(String, ForeignKey("goals.id"), nullable=True)
     
     user = relationship("User", back_populates="tasks")
     project = relationship("Project", back_populates="tasks")
@@ -64,6 +83,15 @@ class Task(Base):
     goal = relationship("Goal", back_populates="tasks")
     tags = relationship("TaskTag", back_populates="task")
     ai_suggestions = relationship("AISuggestion", back_populates="task")
+
+    @classmethod
+    async def create_rls_policies(cls):
+        """Crear políticas RLS para la tabla tasks"""
+        await supabase.rpc('create_auth_policy', {
+            'table_name': 'tasks',
+            'policy_name': 'tasks_policy',
+            'policy_definition': 'auth.uid() = user_id'
+        })
 
 class TaskTag(Base):
     __tablename__ = "task_tags"
@@ -116,16 +144,25 @@ class Subscription(Base):
 class Goal(Base):
     __tablename__ = "goals"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String, nullable=False)
     description = Column(Text)
     category = Column(String, nullable=False)
     plan = Column(Text)
     status = Column(String, default="pendiente")
     resources = Column(Text)  # JSON string para recursos
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(String, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     user = relationship("User", back_populates="goals")
-    tasks = relationship("Task", back_populates="goal") 
+    tasks = relationship("Task", back_populates="goal")
+
+    @classmethod
+    async def create_rls_policies(cls):
+        """Crear políticas RLS para la tabla goals"""
+        await supabase.rpc('create_auth_policy', {
+            'table_name': 'goals',
+            'policy_name': 'goals_policy',
+            'policy_definition': 'auth.uid() = user_id'
+        }) 

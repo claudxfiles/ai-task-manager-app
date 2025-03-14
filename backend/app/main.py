@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from openai import AsyncOpenAI
+import httpx
 import asyncio
 from dotenv import load_dotenv
 import os
@@ -16,15 +16,15 @@ from .auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from .models import User, APIRequest, Subscription
-from .database import get_db
+from .database import get_db, init_db
 from sqlalchemy.orm import Session
 from typing import Optional, List
 import redis
 from .task_router import router as task_router
 from .routers.goals import router as goals_router
 from .routers.chat import router as chat_router
-import httpx
 from datetime import timedelta
+import json
 
 # Cargar variables de entorno
 load_dotenv()
@@ -46,6 +46,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """
+    Inicializar la base de datos al arrancar la aplicación
+    """
+    await init_db()
+
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
@@ -60,13 +67,8 @@ app.include_router(task_router, prefix="/api/tasks", tags=["tasks"])
 app.include_router(goals_router, prefix="/api/goals", tags=["goals"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 
-# Cliente OpenAI global
+# Cliente httpx global
 http_client = httpx.AsyncClient()
-client = AsyncOpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url="https://openrouter.ai/api/v1",
-    http_client=http_client
-)
 
 # Modelos Pydantic
 class ChatRequest(BaseModel):
@@ -151,6 +153,49 @@ async def record_api_usage(user_id: int, model: str, tokens: int, db: Session):
     db.add(api_request)
     db.commit()
 
+async def make_openrouter_request(messages: list, model: str = None) -> str:
+    """
+    Hace una petición a OpenRouter API usando httpx directamente
+    """
+    if model is None:
+        model = os.getenv("OPENROUTER_MODEL", "claude-3-sonnet-20240229")
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Task Manager AI",
+        }
+        
+        data = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "provider": {
+                "order": ["Groq", "Fireworks"],
+                "allow_fallbacks": False
+            }
+        }
+        
+        async with http_client.stream('POST', f"{os.getenv('OPENROUTER_BASE_URL')}/chat/completions", headers=headers, json=data) as response:
+            response.raise_for_status()
+            response_text = ""
+            
+            async for line in response.aiter_lines():
+                if line.startswith('data: '):
+                    try:
+                        chunk = json.loads(line[6:])
+                        if chunk.get('choices') and chunk['choices'][0].get('delta', {}).get('content'):
+                            response_text += chunk['choices'][0]['delta']['content']
+                    except json.JSONDecodeError:
+                        continue
+            
+            return response_text
+        
+    except Exception as e:
+        print(f"Error en OpenRouter API: {str(e)}")
+        raise Exception(f"Error en OpenRouter API: {str(e)}")
+
 # Endpoint de chat con rate limiting y tracking de uso
 @app.post("/chat")
 async def chat(
@@ -170,37 +215,17 @@ async def chat(
         raise HTTPException(status_code=402, detail="No credits remaining")
     
     try:
-        stream = await client.chat.completions.create(
-            model=request.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": request.message
-                }
-            ],
-            stream=True,
-            extra_body={
-                "provider": {
-                    "order": ["Groq","Fireworks"],
-                    "allow_fallbacks": False
-                }
-            }
+        response_text = await make_openrouter_request(
+            messages=[{"role": "user", "content": request.message}],
+            model=request.model
         )
-        
-        response_text = ""
-        tokens_used = 0
-        
-        async for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                response_text += chunk.choices[0].delta.content
-                tokens_used += 1
         
         # Registrar uso en background
         background_tasks.add_task(
             record_api_usage,
             user_id=current_user.id,
             model=request.model,
-            tokens=tokens_used,
+            tokens=len(response_text.split()),  # Estimación simple de tokens
             db=db
         )
         

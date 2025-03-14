@@ -1,19 +1,17 @@
 import os
 import json
-from openai import AsyncOpenAI
+import httpx
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_BASE_URL = os.getenv("BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "claude-3-sonnet-20240229")
 
-# Cliente OpenAI global
-client = AsyncOpenAI(
-    base_url=OPENROUTER_BASE_URL,
-    api_key=OPENROUTER_API_KEY,
-)
+# Cliente httpx global
+http_client = httpx.AsyncClient()
 
 GOAL_CATEGORIES = {
     "negocio-startup": {
@@ -84,31 +82,39 @@ def get_category_from_text(text: str) -> str:
 
 async def make_openrouter_request(messages: list, model: str = "qwen/qwq-32b:online") -> str:
     """
-    Hace una petición a OpenRouter API usando el cliente de OpenAI
+    Hace una petición a OpenRouter API usando httpx directamente
     """
     try:
-        stream = await client.chat.completions.create(
-            extra_headers={
-                "HTTP-Referer": "http://localhost:3000",
-                "X-Title": "SoulDream AI",
-            },
-            model=model,
-            messages=messages,
-            stream=True,
-            extra_body={
-                "provider": {
-                    "order": ["Groq", "Fireworks"],
-                    "allow_fallbacks": False
-                }
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "SoulDream AI",
+        }
+        
+        data = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "provider": {
+                "order": ["Groq", "Fireworks"],
+                "allow_fallbacks": False
             }
-        )
+        }
         
-        response_text = ""
-        async for chunk in stream:
-            if chunk.choices[0].delta.content is not None:
-                response_text += chunk.choices[0].delta.content
-        
-        return response_text
+        async with http_client.stream('POST', f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=data) as response:
+            response.raise_for_status()
+            response_text = ""
+            
+            async for line in response.aiter_lines():
+                if line.startswith('data: '):
+                    try:
+                        chunk = json.loads(line[6:])
+                        if chunk.get('choices') and chunk['choices'][0].get('delta', {}).get('content'):
+                            response_text += chunk['choices'][0]['delta']['content']
+                    except json.JSONDecodeError:
+                        continue
+            
+            return response_text
         
     except Exception as e:
         print(f"Error en OpenRouter API: {str(e)}")
