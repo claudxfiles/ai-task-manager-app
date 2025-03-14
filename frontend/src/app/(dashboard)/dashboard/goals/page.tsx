@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { GoalType } from "@/services/goalClassifier";
+import { Goal, Task, GoalStatus, GoalPriority, LifeAreaType, LIFE_AREAS } from "@/types/goals";
+import { api } from "@/lib/api";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -35,35 +37,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NewGoalButton } from '@/components/goals/new-goal-button';
+import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
+import { ApiErrorBoundary } from '@/components/api-error-boundary';
+import { GoalCard } from '@/components/goals/goal-card';
 
 interface SubTask {
   id: number;
   title: string;
   completed: boolean;
-}
-
-type GoalStatus = "pendiente" | "en progreso" | "completada";
-type GoalPriority = "alta" | "media" | "baja";
-
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  priority: GoalPriority;
-  status: GoalStatus;
-  goalType: GoalType;
-  progress: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Task {
-  id: number;
-  title: string;
-  completed: boolean;
-  dueDate?: string;
-  priority: "alta" | "media" | "baja";
 }
 
 interface Project {
@@ -100,44 +83,6 @@ const leaderboardData = [
   { id: 3, name: "Tu", points: 820, avatar: "/avatars/user3.png", isCurrentUser: true },
   { id: 4, name: "Juan Pérez", points: 750, avatar: "/avatars/user4.png" },
   { id: 5, name: "Ana García", points: 620, avatar: "/avatars/user5.png" },
-];
-
-const LIFE_AREAS: LifeArea[] = [
-  {
-    id: "desarrollo",
-    name: "Desarrollo Personal",
-    description: "Metas enfocadas en tu crecimiento personal",
-    icon: "💼",
-    projects: []
-  },
-  {
-    id: "salud",
-    name: "Salud y Bienestar",
-    description: "Metas relacionadas con tu salud física y mental",
-    icon: "💪",
-    projects: []
-  },
-  {
-    id: "educacion",
-    name: "Educación",
-    description: "Metas académicas y de aprendizaje",
-    icon: "📚",
-    projects: []
-  },
-  {
-    id: "finanzas",
-    name: "Finanzas",
-    description: "Metas financieras y económicas",
-    icon: "💰",
-    projects: []
-  },
-  {
-    id: "hobby",
-    name: "Hobbies",
-    description: "Metas relacionadas con tus pasatiempos",
-    icon: "🎨",
-    projects: []
-  }
 ];
 
 const CURRENCIES = [
@@ -242,121 +187,235 @@ const ProjectCard = ({
   );
 };
 
+interface NewGoalForm {
+  title: string;
+  description: string;
+  dueDate: string;
+  priority: GoalPriority;
+  category: LifeAreaType | '';
+  isProject: boolean;
+}
+
+const CATEGORY_ALL = 'all' as const;
+type CategoryType = LifeAreaType | typeof CATEGORY_ALL;
+
+const CATEGORIES: Record<CategoryType, { label: string; icon: string }> = {
+  [CATEGORY_ALL]: { label: 'Todas', icon: '📋' },
+  'desarrollo-personal': { label: 'Desarrollo Personal', icon: '🎯' },
+  'salud-bienestar': { label: 'Salud y Bienestar', icon: '💪' },
+  'educacion': { label: 'Educación', icon: '📚' },
+  'finanzas': { label: 'Finanzas', icon: '💰' },
+  'hobbies': { label: 'Hobbies', icon: '🎨' },
+};
+
 export default function GoalsPage() {
-  const [goals, setGoals] = useLocalStorage<Goal[]>("user_goals", []);
-  const [selectedArea, setSelectedArea] = useState<string>("all");
-  const [showNewGoalDialog, setShowNewGoalDialog] = useState(false);
-  const [newGoal, setNewGoal] = useState<Partial<Goal>>({
-    title: "",
-    description: "",
-    dueDate: "",
-    priority: "media",
-    status: "pendiente",
-    progress: 0
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>(CATEGORY_ALL);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newGoal, setNewGoal] = useState<NewGoalForm>({
+    title: '',
+    description: '',
+    dueDate: '',
+    priority: 'media',
+    category: '',
+    isProject: false,
   });
 
-  const filteredGoals = goals.filter(goal => 
-    selectedArea === "all" || goal.goalType === selectedArea
-  );
+  useEffect(() => {
+    fetchGoals();
 
-  const goalsByStatus = {
-    pendiente: filteredGoals.filter(g => g.status === "pendiente"),
-    "en progreso": filteredGoals.filter(g => g.status === "en progreso"),
-    completada: filteredGoals.filter(g => g.status === "completada")
-  };
-
-  const handleCreateGoal = () => {
-    if (!newGoal.title) return;
-
-    const goal: Goal = {
-      id: Date.now().toString(),
-      title: newGoal.title,
-      description: newGoal.description || "",
-      dueDate: newGoal.dueDate || new Date().toISOString(),
-      priority: newGoal.priority as GoalPriority,
-      status: newGoal.status as GoalStatus,
-      goalType: selectedArea === "all" ? "desarrollo" : selectedArea as GoalType,
-      progress: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Suscribirse a eventos de actualización de metas
+    const handleGoalCreated = () => {
+      console.log("Nueva meta detectada, actualizando lista...");
+      fetchGoals();
     };
 
-    setGoals([...goals, goal]);
-    setShowNewGoalDialog(false);
-    setNewGoal({
-      title: "",
-      description: "",
-      dueDate: "",
-      priority: "media",
-      status: "pendiente",
-      progress: 0
-    });
+    window.addEventListener('goalCreated', handleGoalCreated);
+    
+    return () => {
+      window.removeEventListener('goalCreated', handleGoalCreated);
+    };
+  }, []);
+
+  const fetchGoals = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.goals.list();
+      setGoals(response);
+    } catch (error) {
+      console.error('Error fetching goals:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateGoalStatus = (goalId: string, newStatus: GoalStatus) => {
-    setGoals(goals.map(goal => 
-      goal.id === goalId 
-        ? { ...goal, status: newStatus, updatedAt: new Date().toISOString() }
-        : goal
-    ));
+  const handleCreateGoal = async () => {
+    if (!newGoal.category) return;
+    
+    try {
+      const goalData: Partial<Goal> = {
+        ...newGoal,
+        status: 'pendiente' as const,
+        progress: 0,
+        tasks: [],
+        isProject: newGoal.isProject || false,
+        category: newGoal.category as LifeAreaType,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const response = await api.goals.create(goalData);
+      setGoals([...goals, response]);
+      setIsDialogOpen(false);
+      setNewGoal({
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: 'media',
+        category: '',
+        isProject: false,
+      });
+    } catch (error) {
+      console.error('Error creating goal:', error);
+    }
   };
 
-  const updateGoalProgress = (goalId: string, progress: number) => {
-    setGoals(goals.map(goal =>
-      goal.id === goalId
-        ? { ...goal, progress, updatedAt: new Date().toISOString() }
-        : goal
-    ));
+  const handleUpdateGoal = async (goalId: string, updates: Partial<Goal>) => {
+    try {
+      const response = await api.goals.update(goalId, updates);
+      setGoals(goals.map(goal => goal.id === goalId ? response : goal));
+    } catch (error) {
+      console.error('Error updating goal:', error);
+    }
   };
 
-  const deleteGoal = (goalId: string) => {
-    setGoals(goals.filter(goal => goal.id !== goalId));
+  const handleDeleteGoal = async (goalId: string) => {
+    try {
+      await api.goals.delete(goalId);
+      setGoals(goals.filter(goal => goal.id !== goalId));
+    } catch (error) {
+      console.error('Error deleting goal:', error);
+    }
+  };
+
+  const handleAddTask = async (goalId: string, taskData: Partial<Task>) => {
+    try {
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const newTask: Task = {
+        id: Math.random().toString(),
+        title: taskData.title || '',
+        description: taskData.description || '',
+        completed: false,
+        dueDate: taskData.dueDate || new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updatedGoal: Goal = {
+        ...goal,
+        tasks: [...goal.tasks, newTask],
+      };
+
+      const response = await api.goals.update(goalId, updatedGoal);
+      setGoals(goals.map(g => g.id === goalId ? response : g));
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleToggleTask = async (goalId: string, taskId: string) => {
+    try {
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const updatedTasks = goal.tasks.map((task: Task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      );
+
+      const updatedGoal = {
+        ...goal,
+        tasks: updatedTasks,
+        progress: Math.round((updatedTasks.filter((t: Task) => t.completed).length / updatedTasks.length) * 100),
+      };
+
+      const response = await api.goals.update(goalId, updatedGoal);
+      setGoals(goals.map(g => g.id === goalId ? response : g));
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (goalId: string, taskId: string) => {
+    try {
+      const goal = goals.find(g => g.id === goalId);
+      if (!goal) return;
+
+      const updatedTasks = goal.tasks.filter((task: Task) => task.id !== taskId);
+      const updatedGoal = {
+        ...goal,
+        tasks: updatedTasks,
+        progress: updatedTasks.length > 0
+          ? Math.round((updatedTasks.filter((t: Task) => t.completed).length / updatedTasks.length) * 100)
+          : 0,
+      };
+
+      const response = await api.goals.update(goalId, updatedGoal);
+      setGoals(goals.map(g => g.id === goalId ? response : g));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const filterGoalsByStatus = (goals: Goal[], status: GoalStatus) => {
+    return goals.filter(goal => goal.status === status);
+  };
+
+  const filterGoalsByCategory = (goals: Goal[], category: CategoryType) => {
+    return category === CATEGORY_ALL ? goals : goals.filter(goal => goal.category === category);
   };
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Metas</h2>
-          <p className="text-muted-foreground">
-            Gestiona y da seguimiento a tus metas personales
-          </p>
-        </div>
-        <Dialog open={showNewGoalDialog} onOpenChange={setShowNewGoalDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Meta
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Crear Nueva Meta</DialogTitle>
-              <DialogDescription>
-                Define los detalles de tu nueva meta
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Título</Label>
-                <Input
-                  id="title"
-                  value={newGoal.title}
-                  onChange={e => setNewGoal({ ...newGoal, title: e.target.value })}
-                  placeholder="Ej: Aprender un nuevo idioma"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Descripción</Label>
-                <Textarea
-                  id="description"
-                  value={newGoal.description}
-                  onChange={e => setNewGoal({ ...newGoal, description: e.target.value })}
-                  placeholder="Describe tu meta..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
+    <ApiErrorBoundary>
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Metas y Proyectos</h2>
+            <p className="text-muted-foreground">
+              Gestiona tus metas y proyectos por categorías
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nueva Meta
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Crear Nueva Meta</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Título</Label>
+                  <Input
+                    id="title"
+                    value={newGoal.title}
+                    onChange={e => setNewGoal({ ...newGoal, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descripción</Label>
+                  <Textarea
+                    id="description"
+                    value={newGoal.description}
+                    onChange={e => setNewGoal({ ...newGoal, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="dueDate">Fecha límite</Label>
                   <Input
                     id="dueDate"
@@ -365,7 +424,7 @@ export default function GoalsPage() {
                     onChange={e => setNewGoal({ ...newGoal, dueDate: e.target.value })}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="priority">Prioridad</Label>
                   <Select
                     value={newGoal.priority}
@@ -375,105 +434,118 @@ export default function GoalsPage() {
                       <SelectValue placeholder="Selecciona la prioridad" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="alta">Alta</SelectItem>
-                      <SelectItem value="media">Media</SelectItem>
                       <SelectItem value="baja">Baja</SelectItem>
+                      <SelectItem value="media">Media</SelectItem>
+                      <SelectItem value="alta">Alta</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowNewGoalDialog(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleCreateGoal}>Crear Meta</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">Todas</TabsTrigger>
-          {LIFE_AREAS.map(area => (
-            <TabsTrigger key={area.id} value={area.id}>
-              {area.icon} {area.name}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Object.entries(goalsByStatus).map(([status, statusGoals]) => (
-              <Card key={status} className="p-6">
-                <h3 className="font-semibold text-lg capitalize mb-4">{status}</h3>
-                <div className="space-y-4">
-                  {statusGoals.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No hay metas en esta categoría</p>
-                  ) : (
-                    statusGoals.map(goal => (
-                      <Card key={goal.id} className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{goal.title}</h4>
-                            <p className="text-sm text-muted-foreground">{goal.description}</p>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => updateGoalStatus(goal.id, "pendiente")}>
-                                Marcar como Pendiente
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateGoalStatus(goal.id, "en progreso")}>
-                                Marcar En Progreso
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => updateGoalStatus(goal.id, "completada")}>
-                                Marcar como Completada
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => deleteGoal(goal.id)}>
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span>Progreso</span>
-                            <span>{goal.progress}%</span>
-                          </div>
-                          <Progress value={goal.progress} />
-                        </div>
-                        <div className="mt-4 flex gap-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(goal.priority)}`}>
-                            {goal.priority}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            Vence: {new Date(goal.dueDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </Card>
-                    ))
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categoría</Label>
+                  <Select
+                    value={newGoal.category}
+                    onValueChange={value => setNewGoal({ ...newGoal, category: value as LifeAreaType | '' })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona la categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(LIFE_AREAS).map(([key, area]) => (
+                        <SelectItem key={key} value={key}>
+                          {area.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isProject"
+                    checked={newGoal.isProject}
+                    onChange={e => setNewGoal({ ...newGoal, isProject: e.target.checked })}
+                  />
+                  <Label htmlFor="isProject">Es un proyecto con tareas</Label>
+                </div>
+                <Button onClick={handleCreateGoal} className="w-full">
+                  Crear Meta
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        {LIFE_AREAS.map(area => (
-          <TabsContent key={area.id} value={area.id}>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {/* Similar content as "all" tab but filtered by area */}
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
-    </div>
+        <Tabs defaultValue={CATEGORY_ALL} className="space-y-4">
+          <TabsList className="bg-muted/50 p-1">
+            {Object.entries(CATEGORIES).map(([value, { label, icon }]) => (
+              <TabsTrigger key={value} value={value} className="rounded-sm">
+                {icon} {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {Object.keys(CATEGORIES).map((category) => (
+            <TabsContent key={category} value={category} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                {/* Sección Pendiente */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Pendiente</h3>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filterGoalsByStatus(filterGoalsByCategory(goals, category as CategoryType), 'pendiente').map(goal => (
+                      <GoalCard
+                        key={goal.id}
+                        goal={goal}
+                        onUpdateGoal={handleUpdateGoal}
+                        onDeleteGoal={handleDeleteGoal}
+                        onAddTask={handleAddTask}
+                        onToggleTask={handleToggleTask}
+                        onDeleteTask={handleDeleteTask}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sección En Progreso */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">En Progreso</h3>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filterGoalsByStatus(filterGoalsByCategory(goals, category as CategoryType), 'en progreso').map(goal => (
+                      <GoalCard
+                        key={goal.id}
+                        goal={goal}
+                        onUpdateGoal={handleUpdateGoal}
+                        onDeleteGoal={handleDeleteGoal}
+                        onAddTask={handleAddTask}
+                        onToggleTask={handleToggleTask}
+                        onDeleteTask={handleDeleteTask}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sección Completada */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Completada</h3>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filterGoalsByStatus(filterGoalsByCategory(goals, category as CategoryType), 'completada').map(goal => (
+                      <GoalCard
+                        key={goal.id}
+                        goal={goal}
+                        onUpdateGoal={handleUpdateGoal}
+                        onDeleteGoal={handleDeleteGoal}
+                        onAddTask={handleAddTask}
+                        onToggleTask={handleToggleTask}
+                        onDeleteTask={handleDeleteTask}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
+    </ApiErrorBoundary>
   );
 }
 

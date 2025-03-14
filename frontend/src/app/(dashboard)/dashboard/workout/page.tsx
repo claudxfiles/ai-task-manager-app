@@ -1,180 +1,206 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dumbbell, Plus, Save, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-
-interface Exercise {
-  id: string;
-  name: string;
-  muscleGroup: string;
-  sets: number;
-  reps: number;
-  weight?: number;
-}
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { 
+  Play, 
+  Calendar, 
+  History, 
+  ChevronRight,
+  Timer,
+  Dumbbell,
+  Flame,
+  Trophy
+} from 'lucide-react';
+import { muscleGroups, muscleDetails, workoutPrograms } from '@/data/workout-data';
+import { MuscleGroup, WorkoutProgram } from '@/types/workout';
+import { useToast } from '@/components/ui/use-toast';
+import { AnatomicalView } from '@/components/workout/anatomical-view';
 
 export default function WorkoutPage() {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [newExercise, setNewExercise] = useState<Partial<Exercise>>({});
+  const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroup | null>(null);
+  const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const handleAddExercise = () => {
-    if (!newExercise.name || !newExercise.muscleGroup) return;
-
-    const exercise: Exercise = {
-      id: Date.now().toString(),
-      name: newExercise.name,
-      muscleGroup: newExercise.muscleGroup,
-      sets: newExercise.sets || 0,
-      reps: newExercise.reps || 0,
-      weight: newExercise.weight,
-    };
-
-    setExercises([...exercises, exercise]);
-    setNewExercise({});
-  };
-
-  const handleDeleteExercise = (id: string) => {
-    setExercises(exercises.filter(exercise => exercise.id !== id));
+  const handleMuscleClick = (muscle: MuscleGroup) => {
+    setSelectedMuscle(muscle);
+    toast({
+      title: muscle.name,
+      description: `Músculos principales: ${muscle.muscles.join(', ')}`,
+    });
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
-          <Dumbbell className="w-8 h-8" />
-          Workout Tracker
-        </h1>
-
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Exercise</CardTitle>
-              <CardDescription>Track your workout progress by adding exercises</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Exercise Name</Label>
-                  <Input
-                    id="name"
-                    value={newExercise.name || ''}
-                    onChange={(e) => setNewExercise({ ...newExercise, name: e.target.value })}
-                    placeholder="e.g. Bench Press"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="muscleGroup">Muscle Group</Label>
-                  <Select
-                    value={newExercise.muscleGroup}
-                    onValueChange={(value) => setNewExercise({ ...newExercise, muscleGroup: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select muscle group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="chest">Chest</SelectItem>
-                      <SelectItem value="back">Back</SelectItem>
-                      <SelectItem value="legs">Legs</SelectItem>
-                      <SelectItem value="shoulders">Shoulders</SelectItem>
-                      <SelectItem value="arms">Arms</SelectItem>
-                      <SelectItem value="core">Core</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="sets">Sets</Label>
-                  <Input
-                    id="sets"
-                    type="number"
-                    value={newExercise.sets || ''}
-                    onChange={(e) => setNewExercise({ ...newExercise, sets: parseInt(e.target.value) })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="reps">Reps</Label>
-                  <Input
-                    id="reps"
-                    type="number"
-                    value={newExercise.reps || ''}
-                    onChange={(e) => setNewExercise({ ...newExercise, reps: parseInt(e.target.value) })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="weight">Weight (kg)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    value={newExercise.weight || ''}
-                    onChange={(e) => setNewExercise({ ...newExercise, weight: parseInt(e.target.value) })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button onClick={handleAddExercise} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Exercise
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <div className="grid gap-4">
-            {exercises.map((exercise) => (
-              <motion.div
-                key={exercise.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{exercise.name}</CardTitle>
-                    <CardDescription>{exercise.muscleGroup}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <span className="font-semibold">Sets:</span> {exercise.sets}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Reps:</span> {exercise.reps}
-                      </div>
-                      <div>
-                        <span className="font-semibold">Weight:</span> {exercise.weight || 0}kg
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => handleDeleteExercise(exercise.id)}>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Delete
-                    </Button>
-                    <Button variant="default">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Progress
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+    <div className="container mx-auto py-6 space-y-8">
+      {/* Header Section */}
+      <div className="flex justify-between items-center">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-bold tracking-tight">Entrenamiento</h2>
+          <p className="text-muted-foreground">
+            Selecciona un grupo muscular para ver detalles anatómicos
+          </p>
         </div>
-      </motion.div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <History className="w-4 h-4 mr-2" />
+            Historial
+          </Button>
+          <Button variant="outline" size="sm">
+            <Calendar className="w-4 h-4 mr-2" />
+            Programar
+          </Button>
+          <Button size="sm">
+            <Play className="w-4 h-4 mr-2" />
+            Iniciar
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Anatomical View */}
+        <AnatomicalView
+          selectedMuscle={selectedMuscle}
+          muscleDetails={muscleDetails}
+          onMuscleHover={setHoveredMuscle}
+          hoveredMuscle={hoveredMuscle}
+        />
+
+        {/* Muscle Groups Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          {muscleGroups.map((group) => (
+            <motion.div
+              key={group.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleMuscleClick(group)}
+            >
+              <Card className={`h-full cursor-pointer overflow-hidden ${
+                selectedMuscle?.id === group.id ? 'ring-2 ring-primary' : ''
+              }`}>
+                <div className="relative h-32">
+                  <Image
+                    src={group.image}
+                    alt={group.name}
+                    fill
+                    className="object-contain p-4"
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold">{group.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {group.exercises} ejercicios
+                  </p>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Workout Programs Section */}
+      <section className="space-y-4">
+        <h3 className="text-lg font-semibold">Programas de Entrenamiento</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {workoutPrograms.map((program) => (
+            <Card key={program.id} className="overflow-hidden">
+              <div className="p-6 space-y-4">
+                <div>
+                  <h4 className="font-semibold text-lg">{program.name}</h4>
+                  <p className="text-sm text-muted-foreground">{program.description}</p>
+                </div>
+                
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center">
+                    <Timer className="w-4 h-4 mr-1" />
+                    {program.duration}
+                  </div>
+                  <div className="flex items-center">
+                    <Dumbbell className="w-4 h-4 mr-1" />
+                    {program.exercises.length} ejercicios
+                  </div>
+                  <div className="flex items-center">
+                    <Flame className="w-4 h-4 mr-1" />
+                    {program.calories} kcal
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {program.targetMuscles.map((muscle) => (
+                    <div
+                      key={muscle}
+                      className="relative w-8 h-8"
+                    >
+                      <Image
+                        src={`/images/workout/${muscle}`}
+                        alt={muscleDetails[muscle]?.name || ''}
+                        fill
+                        className="object-contain opacity-70 hover:opacity-100 transition-opacity"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <Button className="w-full">
+                  Comenzar Programa
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4 bg-gradient-to-br from-green-500/20 to-green-500/10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-500/20 rounded-full">
+              <Trophy className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Total Entrenamientos</p>
+              <h4 className="text-2xl font-bold">24</h4>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-500/10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-500/20 rounded-full">
+              <Timer className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Tiempo Total</p>
+              <h4 className="text-2xl font-bold">12.5 hrs</h4>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 bg-gradient-to-br from-orange-500/20 to-orange-500/10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-orange-500/20 rounded-full">
+              <Flame className="w-6 h-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Calorías Quemadas</p>
+              <h4 className="text-2xl font-bold">6,420</h4>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4 bg-gradient-to-br from-purple-500/20 to-purple-500/10">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-purple-500/20 rounded-full">
+              <Dumbbell className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Ejercicios Completados</p>
+              <h4 className="text-2xl font-bold">186</h4>
+            </div>
+          </div>
+        </Card>
+      </section>
     </div>
   );
 }

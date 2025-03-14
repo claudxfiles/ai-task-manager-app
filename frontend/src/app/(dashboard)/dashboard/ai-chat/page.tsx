@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, FormEvent } from "react";
-import { motion } from "framer-motion";
-import { Card } from "@/components/ui/card";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Trash2, Send } from "lucide-react";
+import { Trash2, Send, Brain, User, RefreshCcw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +17,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "next-auth/react";
+import { cn } from "@/lib/utils";
 
 interface Message {
   id: number;
@@ -26,10 +27,9 @@ interface Message {
   timestamp: string;
 }
 
-const formatTime = () => {
-  const now = new Date();
-  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-};
+function formatTime() {
+  return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
 
 const initialMessages: Message[] = [{
   id: 1,
@@ -39,46 +39,38 @@ const initialMessages: Message[] = [{
 }];
 
 export default function AiChatPage() {
-  const [mounted, setMounted] = useState(false);
-  const [messages, setMessages] = useLocalStorage<Message[]>("chat_messages", initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputMessage, setInputMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { data: session } = useSession();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!inputMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isSending) return;
 
-    const token = localStorage.getItem('token');
-    console.log('Token:', token);
-
-    const newUserMessage: Message = {
+    setIsSending(true);
+    
+    // Agregar mensaje del usuario
+    const newMessage = {
       id: Date.now(),
       content: inputMessage,
-      sender: "user",
-      timestamp: formatTime(),
+      sender: "user" as const,
+      timestamp: formatTime()
     };
-
-    setMessages([...messages, newUserMessage]);
+    
+    setMessages(prev => [...prev, newMessage]);
     setInputMessage("");
-    setIsTyping(true);
 
     try {
-      console.log('Enviando mensaje al servidor...');
-      const response = await fetch('http://localhost:8000/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${session?.accessToken}`,
         },
         body: JSON.stringify({
           message: inputMessage,
@@ -86,123 +78,118 @@ export default function AiChatPage() {
         }),
       });
 
-      console.log('Respuesta del servidor:', response.status);
-
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Error data:', errorData);
-        throw new Error(errorData.detail || 'Error en la respuesta del servidor');
+        throw new Error('Error en la respuesta del servidor');
       }
 
       const data = await response.json();
       
-      const newAiMessage: Message = {
+      setMessages(prev => [...prev, {
         id: Date.now(),
         content: data.response,
         sender: "ai",
-        timestamp: formatTime(),
-      };
-
-      setMessages((prevMessages: Message[]) => [...prevMessages, newUserMessage, newAiMessage]);
+        timestamp: formatTime()
+      }]);
     } catch (error) {
       console.error('Error:', error);
-      const errorMessage: Message = {
+      setMessages(prev => [...prev, {
         id: Date.now(),
-        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, intenta de nuevo.",
+        content: "Lo siento, ha ocurrido un error. Por favor, intenta de nuevo.",
         sender: "ai",
-        timestamp: formatTime(),
-      };
-      setMessages((prevMessages: Message[]) => [...prevMessages, newUserMessage, errorMessage]);
+        timestamp: formatTime()
+      }]);
     } finally {
-      setIsTyping(false);
+      setIsSending(false);
     }
   };
 
-  const clearConversation = () => {
-    setMessages(initialMessages);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   };
 
-  if (!mounted) return null;
-
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Chat con IA</h1>
-          <p className="text-muted-foreground">
-            Conversa con tu asistente personal para planificar y alcanzar tus metas
-          </p>
+    <div className="h-[calc(100vh-8rem)] flex flex-col bg-gradient-to-b from-background to-background/80 rounded-lg shadow-lg">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Brain className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Chat con IA</h1>
+            <p className="text-sm text-muted-foreground">Tu asistente personal</p>
+          </div>
         </div>
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Borrar conversación?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se borrará toda la conversación actual.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={clearConversation}>
-                Borrar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMessages(initialMessages)}
+          className="hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 p-4 rounded-lg border bg-background">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${
-              message.sender === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
             <div
-              className={`max-w-[80%] rounded-lg p-4 ${
-                message.sender === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted"
-              }`}
+              key={message.id}
+              className={cn(
+                "flex gap-3 p-3 rounded-lg",
+                message.sender === "user" ? "bg-muted/50" : "bg-primary/5"
+              )}
             >
-              <p className="text-sm">{message.content}</p>
-              <span className="text-xs opacity-70 mt-2 block">
-                {message.timestamp}
-              </span>
+              <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center">
+                {message.sender === "user" ? (
+                  <User className="h-5 w-5" />
+                ) : (
+                  <Brain className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-muted-foreground mb-1">{message.timestamp}</p>
+                <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              </div>
             </div>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-lg p-4 bg-muted">
-              <p className="text-sm">Escribiendo...</p>
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSendMessage} className="mt-4">
-        <div className="flex gap-2">
+      {/* Input */}
+      <div className="p-4 border-t bg-background/50">
+        <div className="relative">
           <Textarea
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Escribe tu mensaje..."
-            className="flex-1"
+            className="pr-20 resize-none bg-background"
             rows={1}
+            disabled={isSending}
           />
-          <Button type="submit" size="icon" disabled={!inputMessage.trim()}>
-            <Send className="h-4 w-4" />
+          <Button
+            onClick={handleSendMessage}
+            size="sm"
+            className={cn(
+              "absolute right-2 top-1/2 -translate-y-1/2",
+              isSending && "opacity-50 cursor-not-allowed"
+            )}
+            disabled={!inputMessage.trim() || isSending}
+          >
+            {isSending ? (
+              <RefreshCcw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   );
 } 

@@ -1,28 +1,37 @@
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
 import "./globals.css";
-import { Providers } from "@/components/providers";
+import { metadata } from "./metadata";
+import { RootLayoutClient } from "@/components/root-layout-client";
+import { ToastProvider } from "@/components/providers/toast-provider";
+import { AuthProvider } from "@/components/auth-provider";
 
 const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: 'SoulDream - Transforma tus Sueños en Realidad',
-  description: 'Planifica tu futuro con la ayuda de IA avanzada. Convierte tus metas en planes accionables y alcanza tu máximo potencial.',
-  manifest: '/manifest.json',
-};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>
-          {children}
-        </Providers>
+      <head>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+      </head>
+      <body className={cn(
+        "min-h-screen bg-background font-sans antialiased",
+        inter.className
+      )}>
+        <AuthProvider>
+          <ToastProvider>
+            <RootLayoutClient>
+              {children}
+            </RootLayoutClient>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );
 }
+
+export { metadata };

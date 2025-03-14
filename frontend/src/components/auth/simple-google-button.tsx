@@ -1,20 +1,19 @@
 "use client";
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
-import { useAuth } from '@/hooks/useAuth';
 
 export function SimpleGoogleButton() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
 
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      await login();
+      await signIn('google', { callbackUrl: '/dashboard' });
     } catch (error) {
       console.error('Error during login:', error);
       setError('Error al iniciar sesión. Por favor, intenta de nuevo.');

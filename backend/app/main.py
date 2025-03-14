@@ -12,7 +12,8 @@ from .auth import (
     create_access_token,
     get_password_hash,
     verify_password,
-    generate_api_key
+    generate_api_key,
+    ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from .models import User, APIRequest, Subscription
 from .database import get_db
@@ -20,7 +21,10 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 import redis
 from .task_router import router as task_router
+from .routers.goals import router as goals_router
+from .routers.chat import router as chat_router
 import httpx
+from datetime import timedelta
 
 # Cargar variables de entorno
 load_dotenv()
@@ -45,20 +49,22 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Incluir el router de tareas
-app.include_router(task_router, prefix="/api", tags=["tasks"])
+# Incluir los routers con sus prefijos correctos
+app.include_router(task_router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(goals_router, prefix="/api/goals", tags=["goals"])
+app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
 
 # Cliente OpenAI global
 http_client = httpx.AsyncClient()
 client = AsyncOpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
-    base_url=os.getenv("BASE_URL"),
+    base_url="https://openrouter.ai/api/v1",
     http_client=http_client
 )
 
@@ -74,12 +80,34 @@ class UserCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    expires_in: int
 
 class SubscriptionCreate(BaseModel):
     plan_id: str
 
 # Endpoints de autenticación
-@app.post("/register", response_model=Token)
+@app.post("/api/auth/login", response_model=Token)
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password"
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    }
+
+@app.post("/api/auth/register", response_model=Token)
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
@@ -91,26 +119,24 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = User(
         email=user.email,
         hashed_password=hashed_password,
-        api_key=api_key
+        api_key=api_key,
+        credits=100
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
-
-@app.post("/token", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=400,
-            detail="Incorrect email or password"
-        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
     
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    }
 
 async def record_api_usage(user_id: int, model: str, tokens: int, db: Session):
     """Registra el uso de la API en la base de datos"""
@@ -234,7 +260,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 # Endpoint de información del usuario
-@app.get("/me")
+@app.get("/api/auth/me")
 async def get_user_info(current_user: User = Depends(get_current_user)):
     return {
         "email": current_user.email,
