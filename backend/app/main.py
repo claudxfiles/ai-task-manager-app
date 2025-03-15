@@ -6,7 +6,6 @@ import httpx
 import asyncio
 from dotenv import load_dotenv
 import os
-import stripe
 from .auth import (
     get_current_user,
     create_access_token,
@@ -23,14 +22,12 @@ import redis
 from .task_router import router as task_router
 from .routers.goals import router as goals_router
 from .routers.chat import router as chat_router
-from datetime import timedelta
+from .routers.paypal import router as paypal_router
+from datetime import timedelta, datetime
 import json
 
 # Cargar variables de entorno
 load_dotenv()
-
-# Configurar Stripe
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # Configurar Redis para rate limiting
 redis_client = redis.Redis(
@@ -66,6 +63,7 @@ app.add_middleware(
 app.include_router(task_router, prefix="/api/tasks", tags=["tasks"])
 app.include_router(goals_router, prefix="/api/goals", tags=["goals"])
 app.include_router(chat_router, prefix="/api/chat", tags=["chat"])
+app.include_router(paypal_router, prefix="/api/subscriptions", tags=["subscriptions"])
 
 # Cliente httpx global
 http_client = httpx.AsyncClient()
@@ -249,40 +247,17 @@ async def handle_successful_subscription(session: dict, db: Session):
         db.commit()
 
 # Endpoints de suscripción
-@app.post("/create-checkout-session")
-async def create_checkout_session(
+@app.post("/api/subscriptions/create-checkout-session")
+async def create_subscription(
     subscription: SubscriptionCreate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
-    try:
-        checkout_session = stripe.checkout.Session.create(
-            customer_email=current_user.email,
-            line_items=[{"price": subscription.plan_id, "quantity": 1}],
-            mode="subscription",
-            success_url="http://localhost:3000/success",
-            cancel_url="http://localhost:3000/cancel",
-        )
-        return {"url": checkout_session.url}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/webhook")
-async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-    
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, os.getenv("STRIPE_WEBHOOK_SECRET")
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
-    if event.type == "checkout.session.completed":
-        session = event.data.object
-        await handle_successful_subscription(session, db)
-    
-    return {"status": "success"}
+    """
+    Endpoint para crear una suscripción (redirige al router de PayPal)
+    """
+    from .routers.paypal import create_subscription
+    return await create_subscription(subscription.plan_id, current_user, db)
 
 # Endpoint de información del usuario
 @app.get("/api/auth/me")

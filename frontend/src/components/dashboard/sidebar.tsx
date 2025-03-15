@@ -14,7 +14,8 @@ import {
   MessageSquare,
   BarChart2,
   Wallet,
-  Dumbbell
+  Dumbbell,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -65,6 +66,11 @@ const navigation = [
     name: "Analítica",
     href: "/dashboard/analytics",
     icon: BarChart2
+  },
+  {
+    name: "Planes",
+    href: "/pricing",
+    icon: CreditCard
   },
   {
     name: "Ajustes",

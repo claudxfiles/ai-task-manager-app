@@ -28,6 +28,7 @@ import {
   Check,
 } from "lucide-react";
 import { ModeToggle } from "@/components/theme/mode-toggle";
+import { SubscriptionSection } from "@/components/dashboard/subscription-section";
 
 interface SettingItem {
   id: string;
@@ -196,6 +197,9 @@ export default function SettingsPage() {
           Personaliza tu experiencia en SoulDream
         </motion.p>
       </div>
+
+      {/* Subscription Section */}
+      <SubscriptionSection />
 
       {/* Settings Sections */}
       <div className="grid gap-6">

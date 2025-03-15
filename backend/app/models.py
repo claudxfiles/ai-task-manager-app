@@ -132,9 +132,11 @@ class Subscription(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    stripe_subscription_id = Column(String, unique=True)
+    stripe_subscription_id = Column(String, unique=True, nullable=True)  # Puede ser nulo para planes gratuitos
+    paypal_payment_id = Column(String, unique=True, nullable=True)  # ID de pago de PayPal
     plan_id = Column(String)
     status = Column(String)
+    is_free_plan = Column(Boolean, default=False)
     current_period_end = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -165,4 +167,22 @@ class Goal(Base):
             'table_name': 'goals',
             'policy_name': 'goals_policy',
             'policy_definition': 'auth.uid() = user_id'
+        })
+
+class StripeEvent(Base):
+    __tablename__ = "stripe_events"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    stripe_event_id = Column(String, unique=True, nullable=False)
+    event_type = Column(String, nullable=False)
+    data = Column(Text, nullable=False)  # JSON string para los datos del evento
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    @classmethod
+    async def create_rls_policies(cls):
+        """Crear políticas RLS para la tabla stripe_events"""
+        await supabase.rpc('create_auth_policy', {
+            'table_name': 'stripe_events',
+            'policy_name': 'stripe_events_policy',
+            'policy_definition': 'true'  # Solo accesible por el sistema
         }) 
