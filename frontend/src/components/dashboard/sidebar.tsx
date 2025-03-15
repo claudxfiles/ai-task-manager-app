@@ -15,7 +15,8 @@ import {
   BarChart2,
   Wallet,
   Dumbbell,
-  CreditCard
+  CreditCard,
+  Wrench
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -71,6 +72,16 @@ const navigation = [
     name: "Planes",
     href: "/pricing",
     icon: CreditCard
+  },
+  {
+    name: "Planes (Simple)",
+    href: "/pricing-simple",
+    icon: CreditCard
+  },
+  {
+    name: "Test Conexión",
+    href: "/test-connection",
+    icon: Wrench
   },
   {
     name: "Ajustes",

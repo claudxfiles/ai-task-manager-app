@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('Iniciando execute-payment');
+    
     // Inicializar el cliente de Supabase
     const cookieStore = cookies();
     const supabase = createServerClient(
@@ -27,25 +29,35 @@ export async function POST(req: NextRequest) {
     // Verificar autenticación
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      console.error('Error: Usuario no autenticado');
       return NextResponse.json(
         { error: 'No autenticado' },
         { status: 401 }
       );
     }
 
+    console.log('Usuario autenticado:', session.user.email);
+
     // Obtener datos del cuerpo de la solicitud
     const body = await req.json();
     const { payment_id, payer_id } = body;
 
     if (!payment_id || !payer_id) {
+      console.error('Error: Faltan payment_id o payer_id', { payment_id, payer_id });
       return NextResponse.json(
         { error: 'Se requieren payment_id y payer_id' },
         { status: 400 }
       );
     }
 
+    console.log('Datos de pago recibidos:', { payment_id, payer_id });
+    console.log('BACKEND_URL:', process.env.BACKEND_URL);
+
     // Hacer solicitud al backend
-    const response = await fetch(`${process.env.BACKEND_URL}/api/subscriptions/execute-payment`, {
+    const backendUrl = `${process.env.BACKEND_URL}/api/subscriptions/execute-payment`;
+    console.log('Haciendo solicitud a:', backendUrl);
+    
+    const response = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -54,20 +66,25 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ payment_id, payer_id }),
     });
 
+    console.log('Respuesta del backend status:', response.status);
+    
+    const responseData = await response.json();
+    console.log('Respuesta del backend data:', responseData);
+
     if (!response.ok) {
-      const errorData = await response.json();
+      console.error('Error del backend:', responseData);
       return NextResponse.json(
-        { error: errorData.detail || 'Error al ejecutar el pago' },
+        { error: responseData.detail || 'Error al ejecutar el pago' },
         { status: response.status }
       );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    console.log('Pago ejecutado exitosamente:', responseData);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error en execute-payment:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

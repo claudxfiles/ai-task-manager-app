@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckIcon, Sparkles, CreditCard, Zap, Shield, Clock, Users, Star } from 'lucide-react';
+import { CheckIcon, CreditCard, Zap, Shield, Clock, Users, Star } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { motion } from 'framer-motion';
@@ -32,10 +32,36 @@ export default function PricingPage() {
     return () => clearTimeout(timer);
   }, [searchParams]);
 
+  // Verificar si hay un mensaje de suscripción en la URL
+  useEffect(() => {
+    const subscription = searchParams.get('subscription');
+    if (subscription === 'success') {
+      toast({
+        title: '¡Suscripción exitosa!',
+        description: 'Tu suscripción ha sido activada correctamente.',
+        variant: 'default',
+      });
+    } else if (subscription === 'canceled') {
+      toast({
+        title: 'Suscripción cancelada',
+        description: 'Has cancelado el proceso de suscripción.',
+        variant: 'destructive',
+      });
+    } else if (subscription === 'free') {
+      toast({
+        title: 'Plan gratuito activado',
+        description: 'Has activado el plan gratuito correctamente.',
+        variant: 'default',
+      });
+    }
+  }, [searchParams, toast]);
+
   const executePayment = async (paymentId: string, payerId: string) => {
     setIsLoading('executing');
     
     try {
+      console.log('Ejecutando pago con PayPal:', { paymentId, payerId });
+      
       const response = await fetch('/api/subscriptions/execute-payment', {
         method: 'POST',
         headers: {
@@ -45,6 +71,7 @@ export default function PricingPage() {
       });
 
       const data = await response.json();
+      console.log('Respuesta de execute-payment:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al procesar el pago');
@@ -56,7 +83,10 @@ export default function PricingPage() {
         variant: 'default',
       });
       
-      router.push('/dashboard?subscription=success');
+      // Redirigir al dashboard con un pequeño retraso para que el usuario vea el toast
+      setTimeout(() => {
+        router.push('/dashboard?subscription=success');
+      }, 1500);
     } catch (error) {
       console.error('Error al ejecutar el pago:', error);
       toast({
@@ -83,6 +113,8 @@ export default function PricingPage() {
     setIsLoading(planId);
 
     try {
+      console.log('Iniciando suscripción para plan:', planId);
+      
       const response = await fetch('/api/subscriptions/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -92,6 +124,7 @@ export default function PricingPage() {
       });
 
       const data = await response.json();
+      console.log('Respuesta de create-checkout-session:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Error al procesar la suscripción');
@@ -99,9 +132,11 @@ export default function PricingPage() {
 
       if (data.approval_url) {
         // Para plan premium, redirigir a PayPal
+        console.log('Redirigiendo a PayPal:', data.approval_url);
         window.location.href = data.approval_url;
       } else if (data.redirect_url) {
         // Para plan gratuito, redirigir directamente
+        console.log('Redirigiendo a:', data.redirect_url);
         router.push(data.redirect_url);
       }
     } catch (error) {
@@ -116,54 +151,27 @@ export default function PricingPage() {
     }
   };
 
-  // Variantes para animaciones
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100
-      }
-    }
+  // Función para manejar el clic directo en los botones
+  const handleButtonClick = (planId: string) => {
+    console.log(`Botón clickeado para plan: ${planId}`);
+    handleSubscription(planId);
   };
 
   return (
     <div className="container mx-auto py-10 px-4">
-      <motion.div 
-        className="text-center mb-12"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold tracking-tight">
           Planes de Suscripción
         </h1>
         <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-lg">
-          Elige el plan que mejor se adapte a tus necesidades y comienza a potenciar tu productividad con IA
+          Elige el plan que mejor se adapte a tus necesidades
         </p>
-      </motion.div>
+      </div>
 
-      <motion.div 
-        className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
         {/* Plan Gratuito */}
-        <motion.div variants={itemVariants}>
-          <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div>
+          <Card className="flex flex-col h-full shadow-md">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <Clock className="w-5 h-5 mr-2 text-blue-500" />
@@ -204,17 +212,17 @@ export default function PricingPage() {
             <CardFooter>
               <Button
                 className="w-full"
-                onClick={() => handleSubscription('plan_free')}
+                onClick={() => handleButtonClick('plan_free')}
                 disabled={isLoading === 'plan_free' || isLoading === 'executing'}
               >
                 {isLoading === 'plan_free' ? 'Procesando...' : 'Comenzar Gratis'}
               </Button>
             </CardFooter>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Plan Premium */}
-        <motion.div variants={itemVariants} className="md:scale-105 z-10">
+        <div className="md:scale-105 z-10">
           <Card className="flex flex-col h-full border-2 border-primary shadow-lg relative">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
             <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-purple-600">
@@ -267,52 +275,27 @@ export default function PricingPage() {
             </CardContent>
             <CardFooter className="pb-6">
               <Button
-                className="w-full relative overflow-hidden group"
+                className="w-full"
                 variant="default"
                 size="lg"
-                onClick={() => handleSubscription('plan_premium')}
+                onClick={() => handleButtonClick('plan_premium')}
                 disabled={isLoading === 'plan_premium' || isLoading === 'executing'}
               >
-                <span className="relative z-10 flex items-center justify-center w-full">
-                  {isLoading === 'plan_premium' ? (
-                    'Procesando...'
-                  ) : (
-                    <>
-                      Suscribirse con 
-                      <motion.span 
-                        className="ml-2 flex items-center"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ 
-                          opacity: showPayPalLogo ? 1 : 0, 
-                          x: showPayPalLogo ? 0 : -10 
-                        }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        <svg width="80" height="20" viewBox="0 0 100 25" className="ml-1">
-                          <path d="M 8.421 0 L 0 24.553 L 6.326 24.553 L 7.834 19.511 L 16.05 19.511 L 17.558 24.553 L 23.884 24.553 L 15.463 0 L 8.421 0 Z M 9.461 6.571 L 13.421 15.384 L 9.04 15.384 L 12.999 6.571 L 9.461 6.571 Z" fill="#003087"/>
-                          <path d="M 46.547 0 L 40.467 15.384 L 36.125 0 L 29.336 0 L 36.125 24.553 L 43.167 24.553 L 53.336 0 L 46.547 0 Z" fill="#003087"/>
-                          <path d="M 63.505 0 L 55.084 24.553 L 61.41 24.553 L 69.831 0 L 63.505 0 Z" fill="#003087"/>
-                          <path d="M 73.758 0 L 67.432 24.553 L 73.758 24.553 L 80.084 0 L 73.758 0 Z" fill="#003087"/>
-                          <path d="M 97.768 0 L 83.6 0 L 77.274 24.553 L 91.442 24.553 L 92.95 19.511 L 85.108 19.511 L 86.616 14.469 L 94.458 14.469 L 95.966 9.426 L 88.124 9.426 L 89.211 5.298 L 97.053 5.298 L 98.561 0.256 L 97.768 0 Z" fill="#003087"/>
-                          <path d="M 8.421 0 L 0 24.553 L 6.326 24.553 L 7.834 19.511 L 16.05 19.511 L 17.558 24.553 L 23.884 24.553 L 15.463 0 L 8.421 0 Z M 9.461 6.571 L 13.421 15.384 L 9.04 15.384 L 12.999 6.571 L 9.461 6.571 Z" fill="#003087"/>
-                        </svg>
-                      </motion.span>
-                    </>
-                  )}
-                </span>
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                />
+                {isLoading === 'plan_premium' ? (
+                  'Procesando...'
+                ) : (
+                  <>
+                    Suscribirse con PayPal
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Plan Empresas */}
-        <motion.div variants={itemVariants}>
-          <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow duration-300">
+        <div>
+          <Card className="flex flex-col h-full shadow-md">
             <CardHeader>
               <div className="flex items-center mb-2">
                 <Users className="w-5 h-5 mr-2 text-indigo-500" />
@@ -367,15 +350,10 @@ export default function PricingPage() {
               </Button>
             </CardFooter>
           </Card>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
-      <motion.div 
-        className="mt-16 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.5 }}
-      >
+      <div className="mt-16 text-center">
         <h2 className="text-2xl font-semibold mb-4">Preguntas Frecuentes</h2>
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto text-left">
           <div className="bg-card rounded-lg p-6 shadow-sm">
@@ -395,14 +373,9 @@ export default function PricingPage() {
             <p className="text-muted-foreground">Sí, puedes cancelar tu suscripción en cualquier momento desde la configuración de tu cuenta, sin cargos adicionales.</p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div 
-        className="mt-16 text-center"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, duration: 0.5 }}
-      >
+      <div className="mt-16 text-center">
         <div className="bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-950 dark:to-purple-950 rounded-xl p-8 max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold mb-4">¿Necesitas una solución personalizada?</h2>
           <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
@@ -416,21 +389,16 @@ export default function PricingPage() {
             Hablar con un especialista
           </Button>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div 
-        className="mt-16 text-center text-sm text-muted-foreground"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.2, duration: 0.5 }}
-      >
+      <div className="mt-16 text-center text-sm text-muted-foreground">
         <p>Pagos procesados de forma segura a través de PayPal. Todos los precios están en USD.</p>
         <div className="flex justify-center mt-4 space-x-4">
           <Shield className="w-5 h-5" />
           <CreditCard className="w-5 h-5" />
           <Star className="w-5 h-5" />
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 } 
