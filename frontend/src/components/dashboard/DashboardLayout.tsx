@@ -16,7 +16,8 @@ import {
   Sun, 
   Moon, 
   LogOut,
-  User
+  User,
+  Target
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -71,6 +72,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <CheckSquare className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
                 <span className="ml-3">Tareas</span>
+              </Link>
+            </li>
+            <li>
+              <Link 
+                href="/dashboard/goals" 
+                className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              >
+                <Target className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                <span className="ml-3">Metas</span>
               </Link>
             </li>
             <li>
