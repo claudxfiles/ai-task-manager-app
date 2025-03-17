@@ -4,8 +4,27 @@ from pydantic import AnyHttpUrl, validator
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
+    """
+    Configuración general de la aplicación
+    """
+    # Configuración de la API
     API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "SoulDream API"
+    PROJECT_NAME: str = "Task Manager API"
+    
+    # Configuración de base de datos
+    DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL")
+    
+    # Configuración de JWT
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key_here")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # Configuración de CORS
+    CORS_ORIGINS: list = ["*"]
+    
+    # Configuración de OpenRouter
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     
     # CORS - Permitir todos los orígenes en desarrollo
     # En producción deberías especificar los orígenes explícitamente
@@ -19,11 +38,6 @@ class Settings(BaseSettings):
             return v
         raise ValueError(v)
     
-    # JWT
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 días
-    
     # Database
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
     SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", "")
@@ -32,10 +46,6 @@ class Settings(BaseSettings):
     
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
-    # OpenRouter
-    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-    OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
     
     # PayPal
     PAYPAL_CLIENT_ID: str = os.getenv("PAYPAL_CLIENT_ID", "")

@@ -5,9 +5,6 @@ import logging
 import os
 from dotenv import load_dotenv
 
-from app.api.api import api_router
-from app.core.config import settings
-
 # Cargar variables de entorno
 load_dotenv()
 
@@ -20,8 +17,9 @@ logger = logging.getLogger(__name__)
 
 # Crear la aplicación FastAPI
 app = FastAPI(
-    title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    title="Task Manager API",
+    description="API para la aplicación de gestión de tareas y metas potenciada por IA",
+    version="0.1.0",
 )
 
 # Configurar CORS - Permitimos todos los orígenes en desarrollo
@@ -33,21 +31,18 @@ app.add_middleware(
     allow_headers=["*"],  # Permitir todos los headers
 )
 
-# Incluir los routers de la API
-app.include_router(api_router, prefix=settings.API_V1_STR)
-
 # Ruta de verificación de estado
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
 
-# Ruta de prueba para OpenRouter
-@app.get("/test-openrouter")
-async def test_openrouter():
+# Ruta raíz
+@app.get("/")
+async def root():
     return {
-        "message": "Ruta de prueba para OpenRouter",
-        "api_key_configured": bool(settings.OPENROUTER_API_KEY),
-        "base_url": settings.OPENROUTER_BASE_URL
+        "name": "Task Manager API",
+        "version": "0.1.0",
+        "status": "running"
     }
 
 # Manejador de excepciones
@@ -58,6 +53,10 @@ async def global_exception_handler(request, exc):
         status_code=500,
         content={"detail": "Se ha producido un error interno en el servidor"},
     )
+
+# Verificar si estamos en modo desarrollo
+if os.environ.get("ENV", "development") == "development":
+    print("Ejecutando en modo desarrollo")
 
 if __name__ == "__main__":
     import uvicorn

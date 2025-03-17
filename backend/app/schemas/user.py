@@ -1,31 +1,48 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, UUID4
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class UserBase(BaseModel):
+    """Esquema base para usuarios"""
     email: EmailStr
-    full_name: Optional[str] = None
+    name: Optional[str] = None
+    is_active: bool = True
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6)
+    """Esquema para crear un usuario"""
+    password: str
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
+    """Esquema para actualizar un usuario"""
     email: Optional[EmailStr] = None
-    avatar_url: Optional[str] = None
-    email_notifications: Optional[bool] = None
-    subscription_tier: Optional[str] = None
+    name: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class UserInDB(UserBase):
+    """Modelo de usuario en la base de datos"""
     id: str
-    avatar_url: Optional[str] = None
-    email_notifications: bool = True
-    subscription_tier: str = "free"
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    hashed_password: str
+
+class User(UserBase):
+    """Modelo de usuario para API responses"""
+    id: str
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-class User(UserInDB):
-    pass
+class UserProfile(BaseModel):
+    """Perfil extendido del usuario"""
+    id: str
+    email: EmailStr
+    name: str
+    avatar_url: Optional[str] = None
+    subscription_tier: str = "free"
+    email_notifications: bool = True
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    preferences: Optional[Dict[str, Any]] = None
 
 class Token(BaseModel):
     access_token: str
