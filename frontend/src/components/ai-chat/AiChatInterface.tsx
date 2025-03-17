@@ -13,11 +13,13 @@ import {
   Calendar, 
   DollarSign, 
   Dumbbell, 
-  Target 
+  Target,
+  CheckSquare
 } from 'lucide-react';
 import { GoalChatIntegration } from './GoalChatIntegration';
-import { Goal } from '@/components/goals/GoalsDashboard';
+import { Goal } from '@/types/goal';
 import { useRouter } from 'next/navigation';
+import { toast } from '@/components/ui/use-toast';
 
 // Tipos para los mensajes
 interface Message {
@@ -105,7 +107,9 @@ export function AiChatInterface() {
   const [inputValue, setInputValue] = useState('');
   const [lastUserMessage, setLastUserMessage] = useState('');
   const [createdGoals, setCreatedGoals] = useState<Partial<Goal>[]>([]);
+  const [createdTasks, setCreatedTasks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [messageMetadata, setMessageMetadata] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   
@@ -148,7 +152,14 @@ export function AiChatInterface() {
     setIsLoading(true);
     
     try {
-      // Llamar a la API de OpenRouter
+      // Preparar el historial de mensajes para enviar al backend
+      const messageHistory = messages.map(msg => ({
+        content: msg.content,
+        sender: msg.sender,
+        timestamp: msg.timestamp
+      }));
+      
+      // Enviar solicitud a la API
       const response = await fetch('/api/v1/ai/openrouter-chat', {
         method: 'POST',
         headers: {
@@ -156,7 +167,8 @@ export function AiChatInterface() {
         },
         body: JSON.stringify({
           message: userMessage.content,
-          model: "qwen/qwq-32b:online" // Puedes cambiar el modelo según tus necesidades
+          model: "qwen/qwq-32b:online",
+          messageHistory
         }),
       });
       
@@ -173,7 +185,12 @@ export function AiChatInterface() {
         )
       );
       
-      // Añadir respuesta de la IA
+      // Guardar los metadatos para la detección de metas
+      if (data.metadata) {
+        setMessageMetadata(data.metadata);
+      }
+      
+      // Crear mensaje de respuesta de la IA
       const aiMessage: Message = {
         id: `msg-${Date.now()}`,
         content: data.response,
@@ -181,9 +198,10 @@ export function AiChatInterface() {
         timestamp: new Date()
       };
       
+      // Añadir mensaje de la IA a la conversación
       setMessages(prevMessages => [...prevMessages, aiMessage]);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al enviar mensaje:', error);
       
       // Actualizar el estado del mensaje a error
       setMessages(prevMessages => 
@@ -192,15 +210,12 @@ export function AiChatInterface() {
         )
       );
       
-      // Añadir mensaje de error
-      const errorMessage: Message = {
-        id: `msg-${Date.now()}`,
-        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo más tarde.",
-        sender: 'ai',
-        timestamp: new Date()
-      };
-      
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      // Mostrar mensaje de error
+      toast({
+        title: 'Error',
+        description: 'No se pudo enviar el mensaje. Inténtalo de nuevo.',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -212,14 +227,19 @@ export function AiChatInterface() {
 
   const handleCreateGoal = (goalData: Partial<Goal>) => {
     // Añadir la meta a la lista de metas creadas
-    setCreatedGoals(prev => [...prev, goalData]);
+    const newGoal = {
+      ...goalData,
+      id: `goal-${Date.now()}` // Generar un ID temporal
+    };
+    
+    setCreatedGoals(prev => [...prev, newGoal]);
     
     // Generar respuesta de la IA confirmando la creación de la meta
     const aiResponse = `¡Excelente! He creado una meta para "${goalData.title}". 
     
-He generado un plan personalizado con pasos a seguir para alcanzar esta meta. Puedes verlo en la sección de Metas.
+He generado un plan personalizado con ${goalData.steps?.length || 0} pasos a seguir para alcanzar esta meta. Puedes verlo en la sección de Metas o gestionar los pasos directamente desde el chat.
 
-¿Te gustaría que te ayude a establecer los pasos específicos para alcanzar esta meta?`;
+¿Te gustaría que te ayude a establecer recordatorios para los pasos más importantes?`;
     
     // Añadir respuesta de la IA
     const aiMessage: Message = {
@@ -230,11 +250,45 @@ He generado un plan personalizado con pasos a seguir para alcanzar esta meta. Pu
     };
     
     setMessages(prevMessages => [...prevMessages, aiMessage]);
+    
+    // En una implementación real, aquí se enviaría la meta al backend
+    // para guardarla en la base de datos
+  };
+  
+  const handleCreateTask = (taskTitle: string, goalId: string) => {
+    // Añadir la tarea a la lista de tareas creadas
+    setCreatedTasks(prev => [...prev, taskTitle]);
+    
+    // Encontrar la meta relacionada
+    const relatedGoal = createdGoals.find(goal => goal.id === goalId);
+    
+    // Generar respuesta de la IA confirmando la creación de la tarea
+    const aiResponse = `He creado una tarea para "${taskTitle}"${relatedGoal ? ` relacionada con tu meta "${relatedGoal.title}"` : ''}.
+    
+Puedes ver y gestionar esta tarea en tu tablero de tareas. ¿Quieres que establezca una fecha límite para esta tarea?`;
+    
+    // Añadir respuesta de la IA
+    const aiMessage: Message = {
+      id: `msg-${Date.now()}`,
+      content: aiResponse,
+      sender: 'ai',
+      timestamp: new Date()
+    };
+    
+    setMessages(prevMessages => [...prevMessages, aiMessage]);
+    
+    // En una implementación real, aquí se enviaría la tarea al backend
+    // para guardarla en la base de datos
   };
 
   const handleViewGoals = () => {
     // Navegar a la página de metas
     router.push('/dashboard/goals');
+  };
+  
+  const handleViewTasks = () => {
+    // Navegar a la página de tareas
+    router.push('/dashboard/tasks');
   };
   
   return (
@@ -246,23 +300,37 @@ He generado un plan personalizado con pasos a seguir para alcanzar esta meta. Pu
           ))}
           
           {/* Componente de integración de metas */}
-          {lastUserMessage && (
+          {lastUserMessage && messageMetadata && (
             <GoalChatIntegration 
-              message={lastUserMessage} 
-              onCreateGoal={handleCreateGoal} 
+              message={lastUserMessage}
+              metadata={messageMetadata}
+              onCreateGoal={handleCreateGoal}
+              onCreateTask={handleCreateTask}
             />
           )}
           
-          {/* Mostrar botón para ver metas creadas */}
-          {createdGoals.length > 0 && (
-            <div className="flex justify-center my-4">
-              <button 
-                className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
-                onClick={handleViewGoals}
-              >
-                <Target className="h-4 w-4 mr-2" />
-                Ver {createdGoals.length} {createdGoals.length === 1 ? 'meta creada' : 'metas creadas'}
-              </button>
+          {/* Mostrar botones para ver metas y tareas creadas */}
+          {(createdGoals.length > 0 || createdTasks.length > 0) && (
+            <div className="flex justify-center my-4 gap-3">
+              {createdGoals.length > 0 && (
+                <button 
+                  className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                  onClick={handleViewGoals}
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  Ver {createdGoals.length} {createdGoals.length === 1 ? 'meta creada' : 'metas creadas'}
+                </button>
+              )}
+              
+              {createdTasks.length > 0 && (
+                <button 
+                  className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full text-sm flex items-center hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors"
+                  onClick={handleViewTasks}
+                >
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Ver {createdTasks.length} {createdTasks.length === 1 ? 'tarea creada' : 'tareas creadas'}
+                </button>
+              )}
             </div>
           )}
           
@@ -273,25 +341,25 @@ He generado un plan personalizado con pasos a seguir para alcanzar esta meta. Pu
           <ChatSuggestions onSelectSuggestion={handleSelectSuggestion} />
         )}
         
-        <div className="relative">
+        <div className="flex items-center gap-2 mt-2">
           <input
             type="text"
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Escribe un mensaje..."
-            className="w-full p-3 pr-12 border rounded-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+            className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800"
             disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isLoading}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50"
+            className="p-2 rounded-full bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <div className="h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <Send size={20} />
+              <Send className="h-5 w-5" />
             )}
           </button>
         </div>

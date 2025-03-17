@@ -1,182 +1,151 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Target, Plus, ArrowRight, Check } from 'lucide-react';
-import { Goal } from '@/components/goals/GoalsDashboard';
+import React, { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Goal } from '@/types/goal';
+import { Badge } from '../ui/badge';
+import { CalendarIcon, CheckCircle2, Clock, DollarSign } from 'lucide-react';
+import { MetaAIPanel } from './MetaAIPanel';
 
-interface GoalChatIntegrationProps {
+export interface GoalChatIntegrationProps {
   message: string;
+  metadata: any;
   onCreateGoal: (goalData: Partial<Goal>) => void;
+  onCreateTask?: (taskTitle: string, goalId: string) => void;
 }
 
-export function GoalChatIntegration({ message, onCreateGoal }: GoalChatIntegrationProps) {
-  const [detectedGoal, setDetectedGoal] = useState<Partial<Goal> | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+export function GoalChatIntegration({ message, metadata, onCreateGoal, onCreateTask }: GoalChatIntegrationProps) {
+  const [showGoalCard, setShowGoalCard] = useState(false);
+  const [showMetaPanel, setShowMetaPanel] = useState(false);
+  const [goalData, setGoalData] = useState<Partial<Goal> | null>(null);
 
-  // Detectar posibles metas en el mensaje del usuario
   useEffect(() => {
-    // Esta función simula la detección de metas mediante IA
-    // En una implementación real, esto se haría con un modelo de NLP o llamada a API
-    const detectGoalInMessage = (message: string) => {
-      const lowerMessage = message.toLowerCase();
-      
-      // Detectar metas financieras
-      if (
-        lowerMessage.includes('comprar') || 
-        lowerMessage.includes('ahorrar') || 
-        lowerMessage.includes('adquirir')
-      ) {
-        // Detectar metas de adquisición
-        if (
-          lowerMessage.includes('casa') || 
-          lowerMessage.includes('coche') || 
-          lowerMessage.includes('moto') || 
-          lowerMessage.includes('carro')
-        ) {
-          const type = 'adquisicion';
-          const area = 'finanzas';
-          
-          // Extraer el objeto de la meta
-          let title = '';
-          if (lowerMessage.includes('casa')) title = 'Comprar una casa';
-          else if (lowerMessage.includes('coche') || lowerMessage.includes('carro')) title = 'Comprar un coche';
-          else if (lowerMessage.includes('moto')) title = 'Comprar una moto';
-          
-          return {
-            title,
-            description: `Meta para ${title.toLowerCase()}`,
-            area,
-            type,
-            priority: 'high'
-          };
+    // Solo mostrar la tarjeta si hay metadatos con área y tipo
+    if (metadata && metadata.area && metadata.goalType && metadata.confidence > 0.6) {
+      const newGoalData: Partial<Goal> = {
+        title: metadata.title || `Meta de ${metadata.area}`,
+        description: message,
+        category: metadata.area,
+        type: metadata.goalType,
+        status: 'active',
+        priority: 'medium',
+        steps: metadata.steps || [],
+        timeframe: metadata.timeframe || { 
+          startDate: new Date(), 
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 días por defecto
         }
-      }
+      };
       
-      // Detectar metas de aprendizaje
-      if (
-        lowerMessage.includes('aprender') || 
-        lowerMessage.includes('estudiar') || 
-        lowerMessage.includes('dominar')
-      ) {
-        const type = 'aprendizaje';
-        const area = 'educacion';
-        
-        // Extraer el tema de aprendizaje
-        const learningTopics = [
-          'programación', 'inglés', 'francés', 'alemán', 'italiano',
-          'piano', 'guitarra', 'cocina', 'fotografía', 'diseño'
-        ];
-        
-        let title = '';
-        for (const topic of learningTopics) {
-          if (lowerMessage.includes(topic)) {
-            title = `Aprender ${topic}`;
-            break;
-          }
-        }
-        
-        if (title) {
-          return {
-            title,
-            description: `Meta para ${title.toLowerCase()}`,
-            area,
-            type,
-            priority: 'medium'
-          };
-        }
-      }
-      
-      // Detectar metas de salud
-      if (
-        lowerMessage.includes('ejercicio') || 
-        lowerMessage.includes('entrenar') || 
-        lowerMessage.includes('adelgazar') ||
-        lowerMessage.includes('perder peso') ||
-        lowerMessage.includes('correr') ||
-        lowerMessage.includes('gimnasio')
-      ) {
-        const type = 'habito';
-        const area = 'salud_bienestar';
-        
-        return {
-          title: 'Mejorar condición física',
-          description: 'Establecer rutina de ejercicios y mejorar salud',
-          area,
-          type,
-          priority: 'medium'
-        };
-      }
-      
-      return null;
-    };
-    
-    const goal = detectGoalInMessage(message);
-    setDetectedGoal(goal);
-  }, [message]);
+      setGoalData(newGoalData);
+      setShowGoalCard(true);
+    } else {
+      setShowGoalCard(false);
+    }
+  }, [message, metadata]);
 
   const handleCreateGoal = () => {
-    setIsCreating(true);
-    
-    // Simular un pequeño retraso para mostrar el estado de creación
-    setTimeout(() => {
-      if (detectedGoal) {
-        onCreateGoal(detectedGoal);
-        setIsCreating(false);
-        setDetectedGoal(null);
-      }
-    }, 1000);
+    if (goalData) {
+      onCreateGoal(goalData);
+      // Mostrar el panel de Meta-AI después de crear la meta
+      setShowMetaPanel(true);
+      // Ocultar la tarjeta de detección
+      setShowGoalCard(false);
+    }
+  };
+  
+  const handleCloseMetaPanel = () => {
+    setShowMetaPanel(false);
+  };
+  
+  const handleCreateTask = (taskTitle: string, goalId: string) => {
+    if (onCreateTask) {
+      onCreateTask(taskTitle, goalId);
+    }
   };
 
-  if (!detectedGoal) return null;
+  // Si se está mostrando el panel completo, no mostrar la tarjeta de detección
+  if (showMetaPanel && goalData) {
+    return (
+      <MetaAIPanel 
+        goal={goalData} 
+        onClose={handleCloseMetaPanel} 
+        onCreateTask={handleCreateTask}
+      />
+    );
+  }
+
+  if (!showGoalCard) return null;
 
   return (
-    <Card className="mb-4 border-indigo-200 dark:border-indigo-800 shadow-sm">
+    <Card className="mb-4 border-dashed border-2 border-primary/50 bg-primary/5">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium flex items-center text-indigo-600 dark:text-indigo-400">
-          <Target className="h-4 w-4 mr-2" />
-          Sugerencia de Meta Detectada
+        <CardTitle className="text-lg flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5 text-primary" />
+          Detectamos una posible meta
         </CardTitle>
+        <CardDescription>
+          ¿Quieres crear una meta basada en tu mensaje?
+        </CardDescription>
       </CardHeader>
       <CardContent className="pb-2">
-        <p className="text-sm text-gray-700 dark:text-gray-300">
-          He detectado que podrías estar interesado en crear una meta para:
-        </p>
-        <p className="font-medium mt-1">{detectedGoal.title}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Área: {detectedGoal.area === 'finanzas' ? 'Finanzas' : 
-                 detectedGoal.area === 'educacion' ? 'Educación' : 
-                 detectedGoal.area === 'salud_bienestar' ? 'Salud y Bienestar' : 
-                 detectedGoal.area === 'desarrollo_personal' ? 'Desarrollo Personal' : 
-                 'Hobbies'}
-        </p>
+        <div className="space-y-2">
+          <div>
+            <h4 className="font-medium">{goalData?.title}</h4>
+            <p className="text-sm text-muted-foreground">{goalData?.description}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {goalData?.category && (
+              <Badge variant="outline" className="bg-primary/10">
+                {goalData.category}
+              </Badge>
+            )}
+            {goalData?.type && (
+              <Badge variant="outline" className="bg-secondary/10">
+                {goalData.type}
+              </Badge>
+            )}
+            {goalData?.timeframe && (
+              <Badge variant="outline" className="bg-accent/10 flex items-center gap-1">
+                <CalendarIcon className="h-3 w-3" />
+                {goalData.timeframe.startDate instanceof Date 
+                  ? goalData.timeframe.startDate.toLocaleDateString() 
+                  : new Date(goalData.timeframe.startDate).toLocaleDateString()} - 
+                {goalData.timeframe.endDate instanceof Date 
+                  ? goalData.timeframe.endDate.toLocaleDateString() 
+                  : new Date(goalData.timeframe.endDate).toLocaleDateString()}
+              </Badge>
+            )}
+          </div>
+          
+          {goalData?.steps && goalData.steps.length > 0 && (
+            <div className="mt-3">
+              <h5 className="text-sm font-medium mb-1">Pasos sugeridos:</h5>
+              <ul className="text-sm space-y-1">
+                {goalData.steps.slice(0, 3).map((step: string, index: number) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="bg-primary/20 text-primary rounded-full h-5 w-5 flex items-center justify-center text-xs mt-0.5">
+                      {index + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+                {goalData.steps.length > 3 && (
+                  <li className="text-xs text-muted-foreground pl-7">
+                    +{goalData.steps.length - 3} pasos más...
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
       </CardContent>
-      <CardFooter className="pt-0">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-xs mr-2"
-          onClick={() => setDetectedGoal(null)}
-        >
+      <CardFooter className="flex justify-end gap-2 pt-2">
+        <Button variant="ghost" size="sm" onClick={() => setShowGoalCard(false)}>
           Ignorar
         </Button>
-        <Button 
-          size="sm" 
-          className="text-xs bg-indigo-600 hover:bg-indigo-700"
-          onClick={handleCreateGoal}
-          disabled={isCreating}
-        >
-          {isCreating ? (
-            <>
-              <span className="mr-2">Creando...</span>
-            </>
-          ) : (
-            <>
-              <Plus className="h-3 w-3 mr-1" />
-              <span>Crear Meta</span>
-            </>
-          )}
+        <Button size="sm" onClick={handleCreateGoal}>
+          Crear Meta
         </Button>
       </CardFooter>
     </Card>

@@ -8,7 +8,7 @@ Antes de comenzar, asegúrate de obtener del usuario la siguiente información:
 
 1. Nombre de la Aplicación: SoulDream
 
-2. Objetivo Principal: Crear una plataforma all-in-one para gestión personal (tareas, hábitos, finanzas, fitness) potenciada por inteligencia artificial, que ayude a los usuarios a organizar todos los aspectos de su vida de manera centralizada, ofreciendo recomendaciones inteligentes y análisis de patrones para optimizar su productividad y bienestar.
+2. Objetivo Principal: Crear una plataforma all-in-one para gestión personal (Metas, hábitos, finanzas, fitness) potenciada por inteligencia artificial, que ayude a los usuarios a organizar todos los aspectos de su vida de manera centralizada, ofreciendo recomendaciones inteligentes y análisis de patrones para optimizar su productividad y bienestar.
 
 3. Usuarios Objetivo: Profesionales y personas interesadas en mejora personal y productividad.
 
@@ -55,7 +55,7 @@ Antes de comenzar, asegúrate de obtener del usuario la siguiente información:
 - PayPal para suscripciones.
 
 ### Integración IA:
-- Qwen/qwq-32b para tareas complejas
+- Qwen/qwq-32b para Metas complejas
 - Modelos adicionales según necesidades específicas
 - Sistema de caché para respuestas frecuentes
 
@@ -78,7 +78,7 @@ souldream/
 │   │   │   ├── ui/                              # UI base (shadcn/ui)
 │   │   │   ├── landing/                         # Componentes de landing
 │   │   │   ├── dashboard/                       # Layout y componentes del dashboard
-│   │   │   ├── tasks/                           # Componentes de gestión de tareas
+│   │   │   ├── Metas/                           # Componentes de gestión de Metas
 │   │   │   ├── habits/                          # Componentes de hábitos
 │   │   │   ├── finance/                         # Componentes financieros
 │   │   │   ├── workout/                         # Componentes de fitness
@@ -91,7 +91,7 @@ souldream/
 │   │   ├── lib/                                 # Utilidades y servicios
 │   │   │   ├── supabase.ts                      # Cliente Supabase centralizado
 │   │   │   ├── ai.ts                            # Integraciones de IA
-│   │   │   ├── tasks.ts                         # Servicio de tareas
+│   │   │   ├── Metas.ts                         # Servicio de Metas
 │   │   │   ├── habits.ts                        # Servicio de hábitos
 │   │   │   ├── finance.ts                       # Servicio financiero
 │   │   │   ├── workout.ts                       # Servicio de workout
@@ -107,7 +107,7 @@ souldream/
 │   │   ├── api/                                 # Endpoints API
 │   │   │   ├── v1/
 │   │   │   │   ├── auth/                        # Autenticación
-│   │   │   │   ├── tasks/                       # Endpoints de tareas
+│   │   │   │   ├── Metas/                       # Endpoints de Metas
 │   │   │   │   ├── habits/                      # Endpoints de hábitos
 │   │   │   │   ├── finance/                     # Endpoints financieros
 │   │   │   │   ├── workout/                     # Endpoints de workout
@@ -141,7 +141,7 @@ souldream/
 - Header con perfil y notificaciones
 - Navegación lateral para todas las secciones
 - Widgets personalizables
-- Resumen de tareas pendientes
+- Resumen de Metas pendientes
 - Progreso de hábitos
 - Resumen financiero
 - Próximos workouts
@@ -149,11 +149,11 @@ souldream/
 
 ## Módulos Específicos:
 
-1. **Tareas y Tareas**:
+1. **Metas y Tareas**:
    - Tablero Kanban (pendientes, en progreso, completadas)
    - Categorización con etiquetas
    - Priorización y fechas límite
-   - Sugerencias de IA para optimizar tareas
+   - Sugerencias de IA para optimizar Metas
 
 2. **Hábitos**:
    - Tracking diario de hábitos
@@ -209,7 +209,7 @@ souldream/
    - **Asistente multi-contexto**:
      - Consciencia del contexto completo del usuario (finanzas, hábitos, metas)
      - Interfaz conversacional para todas las funcionalidades de la plataforma
-     - Capacidad para cambiar entre roles específicos (coach financiero, entrenador fitness, organizador de tareas)
+     - Capacidad para cambiar entre roles específicos (coach financiero, entrenador fitness, organizador de Metas)
      - Memoria de conversaciones previas para continuidad
 
    - **Generador de planes personalizados**:
@@ -221,7 +221,7 @@ souldream/
    - **Integración contextual en cada sección**:
      - Asistente financiero especializado en la sección Finanzas
      - Coach de fitness en la sección Workout
-     - Planificador de productividad en la sección Tareas
+     - Planificador de productividad en la sección Metas
      - Interfaz unificada pero con "personalidades" adaptadas a cada contexto
 
    - **Análisis avanzado de patrones**:
@@ -245,7 +245,7 @@ souldream/
 6. **Calendario**:
    - Vista diaria/semanal/mensual
    - Integración con Google Calendar
-   - Eventos vinculados a tareas/hábitos/workouts
+   - Eventos vinculados a Metas/hábitos/workouts
    - Planificación sugerida por IA
 
 7. **Analítica**:
@@ -634,7 +634,7 @@ Para todas las tablas se implementarán políticas RLS que garanticen:
    - Auth y dashboard básico
 
 2. **Fase 2**: Funcionalidades core
-   - Módulos de tareas y hábitos
+   - Módulos de Metas y hábitos
    - Calendario básico
    - Chat con IA simple
 
@@ -733,11 +733,11 @@ Crear una página de planes:
 
 ## Implementación de IA:
 
-1. Asistencia en Tareas:
+1. Asistencia en Metas:
    - Sugerencias de priorización
    - Estimación de tiempo realista
    - Detección de dependencias entre tareas
-   - Recomendación de divisiones para tareas complejas
+   - Recomendación de divisiones para Metas complejas
 
 2. Optimización de Calendario:
    - Sugerencias de horarios óptimos
@@ -764,7 +764,7 @@ Crear una página de planes:
    - **Panel de control "Meta → Plan → Acción"**:
      - Interfaz visual que muestra la meta principal (ej: "Comprar moto")
      - Plan generado por IA con fases detalladas y temporización
-     - Tareas accionables integradas con el sistema de gestión de tareas
+     - Tareas accionables integradas con el sistema de gestión de Metas
      - Actualización dinámica del plan según progreso y cambios en circunstancias
 
    - **Área de "Visualización de futuro"**:
