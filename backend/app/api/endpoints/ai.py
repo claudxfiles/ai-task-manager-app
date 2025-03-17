@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel
 from openai import AsyncOpenAI
 import os
+import logging
 
 from app.services.auth import get_current_user
 from app.schemas.user import User
@@ -13,6 +14,10 @@ from app.services.ai import generate_ai_response
 from app.db.database import get_supabase_client
 from app.core.config import settings
 
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # Modelo de datos para la solicitud de chat directo con OpenRouter
@@ -20,19 +25,29 @@ class OpenRouterChatRequest(BaseModel):
     message: str
     model: str = "qwen/qwq-32b:online"
 
-# Cliente OpenAI global para OpenRouter
-openrouter_client = AsyncOpenAI(
-    base_url=settings.OPENROUTER_BASE_URL,
-    api_key=settings.OPENROUTER_API_KEY,
-)
+# No inicializar el cliente globalmente para evitar errores con httpx
+# Comprobaremos la disponibilidad de la API y crearemos el cliente bajo demanda
 
 @router.post("/openrouter-chat")
 async def openrouter_chat(request: OpenRouterChatRequest):
     """
     Envía un mensaje directamente a OpenRouter y recibe una respuesta en streaming
     """
+    # Verificar si la API key está disponible
+    api_key = settings.OPENROUTER_API_KEY
+    if not api_key:
+        return {
+            "response": "El servicio de chat no está disponible en este momento. La API key no está configurada."
+        }
+    
     try:
-        stream = await openrouter_client.chat.completions.create(
+        # Inicializar el cliente bajo demanda
+        client = AsyncOpenAI(
+            base_url=settings.OPENROUTER_BASE_URL,
+            api_key=api_key,
+        )
+        
+        stream = await client.chat.completions.create(
             extra_headers={
                 "HTTP-Referer": "https://souldream.app",
                 "X-Title": "SoulDream Personal Assistant",
@@ -58,10 +73,16 @@ async def openrouter_chat(request: OpenRouterChatRequest):
             if chunk.choices[0].delta.content is not None:
                 response_text += chunk.choices[0].delta.content
         
+        # Cerrar el cliente correctamente
+        await client.close()
+        
         return {"response": response_text}
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error en chat de OpenRouter: {str(e)}")
+        return {
+            "response": f"Ocurrió un error al procesar su solicitud: {str(e)}"
+        }
 
 @router.post("/chat", response_model=AIChatResponse)
 async def chat_with_ai(

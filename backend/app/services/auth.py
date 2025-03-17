@@ -53,7 +53,7 @@ async def authenticate_user(email: str, password: str) -> Optional[User]:
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """
-    Obtiene el usuario actual a partir del token JWT
+    Obtiene el usuario actual a partir del token JWT de Supabase
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -61,24 +61,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    try:
-        # Decodificar el token
-        payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        token_data = TokenPayload(**payload)
-        
-        # Verificar que el token no ha expirado
-        if datetime.fromtimestamp(token_data.exp) < datetime.now():
-            raise credentials_exception
-    except (JWTError, ValidationError):
+    if not token:
         raise credentials_exception
     
-    # Obtener el usuario de la base de datos
+    # Obtener el usuario de la base de datos usando el token de Supabase directamente
     supabase = get_supabase_client()
     
     try:
-        # Obtener datos del usuario
+        # Usar el token directamente con Supabase
         user_response = supabase.auth.get_user(token)
         user = user_response.user
         
@@ -89,9 +79,31 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         profile_response = supabase.table("profiles").select("*").eq("id", user.id).execute()
         
         if not profile_response.data:
-            raise credentials_exception
-        
-        profile = profile_response.data[0]
+            # Intenta crear un perfil básico para el usuario
+            try:
+                supabase.table("profiles").insert({
+                    "id": user.id,
+                    "full_name": user.user_metadata.get("full_name") if user.user_metadata else "",
+                    "email": user.email,
+                    "avatar_url": "",
+                    "email_notifications": True,
+                    "subscription_tier": "free",
+                }).execute()
+                
+                # Obtener el perfil recién creado
+                profile_response = supabase.table("profiles").select("*").eq("id", user.id).execute()
+                if not profile_response.data:
+                    raise credentials_exception
+            except:
+                # Si no se puede crear el perfil, usar datos básicos
+                profile = {
+                    "full_name": user.user_metadata.get("full_name") if user.user_metadata else "",
+                    "avatar_url": "",
+                    "email_notifications": True,
+                    "subscription_tier": "free",
+                }
+        else:
+            profile = profile_response.data[0]
         
         # Crear objeto de usuario
         user_data = {

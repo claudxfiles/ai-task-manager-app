@@ -20,11 +20,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-# Inicializar cliente de OpenAI/OpenRouter
-ai_client = AsyncOpenAI(
-    api_key=os.getenv("OPENROUTER_API_KEY", settings.OPENROUTER_API_KEY),
-    base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-)
+# No inicializamos el cliente globalmente para evitar errores con httpx
+# En su lugar, crearemos el cliente bajo demanda cuando sea necesario
 
 # Modelos Pydantic para solicitudes y respuestas
 class AIPromptRequest(BaseModel):
@@ -72,6 +69,22 @@ async def generate_ai_response(
 ):
     """Genera una respuesta de IA basada en un prompt."""
     try:
+        # Verificar si tenemos la API key disponible
+        api_key = os.getenv("OPENROUTER_API_KEY", settings.OPENROUTER_API_KEY)
+        if not api_key:
+            return AIPromptResponse(
+                response="El servicio de IA no está disponible en este momento. Por favor, intente más tarde.",
+                model_used="none",
+                tokens_used=0,
+                processing_time=0.0
+            )
+        
+        # Crear cliente bajo demanda
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        )
+            
         start_time = datetime.now()
         
         # Añadir contexto del usuario al prompt
@@ -82,7 +95,7 @@ async def generate_ai_response(
         """
         
         # Llamar a la API de OpenRouter con proveedores específicos
-        response = await ai_client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=request.model,
             messages=[{"role": "user", "content": enhanced_prompt}],
             temperature=request.temperature,
@@ -93,6 +106,9 @@ async def generate_ai_response(
                 "OpenRouter-Providers": "Groq,Fireworks"
             }
         )
+        
+        # Cerrar el cliente correctamente
+        await client.close()
         
         processing_time = (datetime.now() - start_time).total_seconds()
         
@@ -200,6 +216,16 @@ async def generate_suggestion_background(
         # Actualizar estado a "processing"
         supabase.table("ai_suggestions").update({"status": "processing"}).eq("id", suggestion_id).execute()
         
+        # Verificar si tenemos la API key disponible
+        api_key = os.getenv("OPENROUTER_API_KEY", settings.OPENROUTER_API_KEY)
+        if not api_key:
+            logger.error("API key not available, cannot generate suggestion")
+            supabase.table("ai_suggestions").update({
+                "status": "failed",
+                "content": "El servicio de IA no está disponible en este momento. Por favor, intente más tarde."
+            }).eq("id", suggestion_id).execute()
+            return
+        
         # Obtener la entidad
         if entity_type == "task":
             task_response = supabase.table("tasks").select("*").eq("id", entity_id).execute()
@@ -232,8 +258,14 @@ async def generate_suggestion_background(
             }).eq("id", suggestion_id).execute()
             return
         
+        # Crear cliente bajo demanda
+        client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+        )
+        
         # Llamar a la API de OpenRouter con proveedores específicos
-        response = await ai_client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="qwen/qwq-32b:online",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
@@ -243,6 +275,9 @@ async def generate_suggestion_background(
                 "OpenRouter-Providers": "Groq,Fireworks"
             }
         )
+        
+        # Cerrar el cliente correctamente
+        await client.close()
         
         content = response.choices[0].message.content
         
