@@ -41,6 +41,15 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 async def health_check():
     return {"status": "ok"}
 
+# Ruta de prueba para OpenRouter
+@app.get("/test-openrouter")
+async def test_openrouter():
+    return {
+        "message": "Ruta de prueba para OpenRouter",
+        "api_key_configured": bool(settings.OPENROUTER_API_KEY),
+        "base_url": settings.OPENROUTER_BASE_URL
+    }
+
 # Manejador de excepciones
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):

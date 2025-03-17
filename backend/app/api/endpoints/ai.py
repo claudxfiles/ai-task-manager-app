@@ -2,14 +2,66 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Any, List, Optional
 from datetime import datetime
 import uuid
+from pydantic import BaseModel
+from openai import AsyncOpenAI
+import os
 
 from app.services.auth import get_current_user
 from app.schemas.user import User
 from app.schemas.ai import AIChatRequest, AIChatResponse, Conversation, Message
 from app.services.ai import generate_ai_response
 from app.db.database import get_supabase_client
+from app.core.config import settings
 
 router = APIRouter()
+
+# Modelo de datos para la solicitud de chat directo con OpenRouter
+class OpenRouterChatRequest(BaseModel):
+    message: str
+    model: str = "qwen/qwq-32b:online"
+
+# Cliente OpenAI global para OpenRouter
+openrouter_client = AsyncOpenAI(
+    base_url=settings.OPENROUTER_BASE_URL,
+    api_key=settings.OPENROUTER_API_KEY,
+)
+
+@router.post("/openrouter-chat")
+async def openrouter_chat(request: OpenRouterChatRequest):
+    """
+    Envía un mensaje directamente a OpenRouter y recibe una respuesta en streaming
+    """
+    try:
+        stream = await openrouter_client.chat.completions.create(
+            extra_headers={
+                "HTTP-Referer": "https://souldream.app",
+                "X-Title": "SoulDream Personal Assistant",
+            },
+            model=request.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": request.message
+                }
+            ],
+            stream=True,
+            extra_body={
+                "provider": {
+                    "order": ["Groq","Fireworks"],
+                    "allow_fallbacks": False
+                }
+            }
+        )
+        
+        response_text = ""
+        async for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                response_text += chunk.choices[0].delta.content
+        
+        return {"response": response_text}
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/chat", response_model=AIChatResponse)
 async def chat_with_ai(

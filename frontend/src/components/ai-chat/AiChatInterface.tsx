@@ -15,6 +15,9 @@ import {
   Dumbbell, 
   Target 
 } from 'lucide-react';
+import { GoalChatIntegration } from './GoalChatIntegration';
+import { Goal } from '@/components/goals/GoalsDashboard';
+import { useRouter } from 'next/navigation';
 
 // Tipos para los mensajes
 interface Message {
@@ -49,216 +52,248 @@ const ChatMessage = ({ message }: { message: Message }) => {
   );
 };
 
-// Componente para las sugerencias de chat
+// Componente para sugerencias de chat
 const ChatSuggestions = ({ onSelectSuggestion }: { onSelectSuggestion: (suggestion: string) => void }) => {
   const suggestions = [
     {
-      icon: <Target className="h-4 w-4 mr-2" />,
-      text: "¿Cómo puedo establecer metas SMART?"
+      icon: <Target className="h-4 w-4" />,
+      text: "Ayúdame a establecer una meta financiera"
     },
     {
-      icon: <Calendar className="h-4 w-4 mr-2" />,
-      text: "Ayúdame a organizar mi semana"
+      icon: <Clock className="h-4 w-4" />,
+      text: "¿Cómo puedo organizar mejor mi tiempo?"
     },
     {
-      icon: <DollarSign className="h-4 w-4 mr-2" />,
-      text: "Consejos para ahorrar dinero"
+      icon: <Calendar className="h-4 w-4" />,
+      text: "Necesito planificar mi semana"
     },
     {
-      icon: <Dumbbell className="h-4 w-4 mr-2" />,
-      text: "Sugiéreme una rutina de ejercicios"
+      icon: <DollarSign className="h-4 w-4" />,
+      text: "Quiero ahorrar para comprar una moto"
+    },
+    {
+      icon: <Dumbbell className="h-4 w-4" />,
+      text: "Ayúdame con una rutina de ejercicios"
     }
   ];
-
+  
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
+    <div className="flex flex-wrap gap-2 mt-4">
       {suggestions.map((suggestion, index) => (
         <button
           key={index}
+          className="flex items-center px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           onClick={() => onSelectSuggestion(suggestion.text)}
-          className="flex items-center p-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
         >
-          {suggestion.icon}
-          <span className="truncate">{suggestion.text}</span>
+          <span className="mr-2 text-indigo-600 dark:text-indigo-400">{suggestion.icon}</span>
+          {suggestion.text}
         </button>
       ))}
     </div>
   );
 };
 
-// Componente principal del chat
 export function AiChatInterface() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       content: "¡Hola! Soy tu asistente personal en SoulDream. ¿En qué puedo ayudarte hoy?",
       sender: 'ai',
-      timestamp: new Date(Date.now() - 60000)
+      timestamp: new Date()
     }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [lastUserMessage, setLastUserMessage] = useState('');
+  const [createdGoals, setCreatedGoals] = useState<Partial<Goal>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Función para desplazarse al final de los mensajes
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Desplazarse al final cuando se añaden nuevos mensajes
+  const router = useRouter();
+  
+  // Scroll al final de los mensajes cuando se añade uno nuevo
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  // Función para manejar el envío de mensajes
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+  
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isLoading) return;
     
-    // Generar un ID único para el mensaje
-    const messageId = Date.now().toString();
-    
-    // Añadir el mensaje del usuario
+    // Crear un nuevo mensaje del usuario
     const userMessage: Message = {
-      id: messageId,
+      id: `msg-${Date.now()}`,
       content: inputValue,
       sender: 'user',
       timestamp: new Date(),
       status: 'sending'
     };
     
-    setMessages(prev => [...prev, userMessage]);
+    // Actualizar el estado con el mensaje del usuario
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setLastUserMessage(inputValue);
     setInputValue('');
     setIsLoading(true);
     
     try {
-      // Simular una respuesta de la IA (en una implementación real, aquí se llamaría a la API)
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Llamar a la API de OpenRouter
+      const response = await fetch('/api/v1/ai/openrouter-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage.content,
+          model: "qwen/qwq-32b:online" // Puedes cambiar el modelo según tus necesidades
+        }),
+      });
       
-      // Actualizar el estado del mensaje del usuario
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'sent' } : msg
+      if (!response.ok) {
+        throw new Error('Error al comunicarse con la API');
+      }
+      
+      const data = await response.json();
+      
+      // Actualizar el estado del mensaje a enviado
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === userMessage.id ? { ...msg, status: 'sent' } : msg
         )
       );
       
-      // Generar respuesta de la IA
-      const aiResponse = generateAiResponse(inputValue);
+      // Añadir respuesta de la IA
+      const aiMessage: Message = {
+        id: `msg-${Date.now()}`,
+        content: data.response,
+        sender: 'ai',
+        timestamp: new Date()
+      };
       
-      // Añadir la respuesta de la IA
-      setMessages(prev => [
-        ...prev, 
-        {
-          id: Date.now().toString(),
-          content: aiResponse,
-          sender: 'ai',
-          timestamp: new Date()
-        }
-      ]);
+      setMessages(prevMessages => [...prevMessages, aiMessage]);
     } catch (error) {
-      // Manejar errores
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId ? { ...msg, status: 'error' } : msg
+      console.error('Error:', error);
+      
+      // Actualizar el estado del mensaje a error
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === userMessage.id ? { ...msg, status: 'error' } : msg
         )
       );
-      console.error('Error al enviar mensaje:', error);
+      
+      // Añadir mensaje de error
+      const errorMessage: Message = {
+        id: `msg-${Date.now()}`,
+        content: "Lo siento, ha ocurrido un error al procesar tu mensaje. Por favor, inténtalo de nuevo más tarde.",
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
-
-  // Función para manejar la selección de sugerencias
+  
   const handleSelectSuggestion = (suggestion: string) => {
     setInputValue(suggestion);
   };
 
-  // Función para generar respuestas de la IA (simulada)
-  const generateAiResponse = (userMessage: string): string => {
-    const lowerCaseMessage = userMessage.toLowerCase();
+  const handleCreateGoal = (goalData: Partial<Goal>) => {
+    // Añadir la meta a la lista de metas creadas
+    setCreatedGoals(prev => [...prev, goalData]);
     
-    if (lowerCaseMessage.includes('meta') || lowerCaseMessage.includes('smart')) {
-      return "Las metas SMART son Específicas, Medibles, Alcanzables, Relevantes y con Tiempo definido. Para establecer una meta SMART:\n\n1. Específica: Define claramente qué quieres lograr\n2. Medible: Establece criterios para medir el progreso\n3. Alcanzable: Asegúrate de que sea realista\n4. Relevante: Debe alinearse con tus objetivos más amplios\n5. Tiempo definido: Establece un plazo\n\n¿Quieres que te ayude a formular una meta SMART específica?";
-    }
+    // Generar respuesta de la IA confirmando la creación de la meta
+    const aiResponse = `¡Excelente! He creado una meta para "${goalData.title}". 
     
-    if (lowerCaseMessage.includes('organizar') || lowerCaseMessage.includes('semana')) {
-      return "Para organizar tu semana eficientemente, te recomiendo:\n\n1. Dedica 30 minutos cada domingo para planificar\n2. Identifica tus 3 prioridades principales para la semana\n3. Bloquea tiempo para tareas importantes en tu calendario\n4. Incluye tiempo para descanso y autocuidado\n5. Revisa tu progreso diariamente\n\n¿Te gustaría que creemos un plan semanal juntos?";
-    }
+He generado un plan personalizado con pasos a seguir para alcanzar esta meta. Puedes verlo en la sección de Metas.
+
+¿Te gustaría que te ayude a establecer los pasos específicos para alcanzar esta meta?`;
     
-    if (lowerCaseMessage.includes('ahorra') || lowerCaseMessage.includes('dinero')) {
-      return "Aquí tienes algunos consejos para ahorrar dinero:\n\n1. Crea un presupuesto mensual detallado\n2. Automatiza tus ahorros (10-20% de tus ingresos)\n3. Reduce gastos innecesarios como suscripciones no utilizadas\n4. Compara precios antes de compras importantes\n5. Establece metas de ahorro específicas\n6. Considera inversiones a largo plazo\n\n¿Quieres que te ayude a crear un plan de ahorro personalizado?";
-    }
+    // Añadir respuesta de la IA
+    const aiMessage: Message = {
+      id: `msg-${Date.now()}`,
+      content: aiResponse,
+      sender: 'ai',
+      timestamp: new Date()
+    };
     
-    if (lowerCaseMessage.includes('ejercicio') || lowerCaseMessage.includes('rutina')) {
-      return "Aquí tienes una rutina de ejercicios básica que puedes hacer en casa:\n\n• Calentamiento (5 min): Saltos, rotaciones de brazos\n• Fuerza (15 min):\n  - 3 series de 10 sentadillas\n  - 3 series de 10 flexiones (adaptadas a tu nivel)\n  - 3 series de 30 segundos de plancha\n• Cardio (10 min): Saltos de tijera, mountain climbers\n• Estiramiento (5 min)\n\nRecuerda adaptar la intensidad a tu nivel y consultar con un profesional si tienes condiciones médicas.\n\n¿Quieres una rutina más específica?";
-    }
-    
-    return "Gracias por tu mensaje. Estoy aquí para ayudarte con la gestión de tareas, hábitos, finanzas, fitness y más. ¿Hay algo específico en lo que pueda asistirte hoy?";
+    setMessages(prevMessages => [...prevMessages, aiMessage]);
   };
 
+  const handleViewGoals = () => {
+    // Navegar a la página de metas
+    router.push('/dashboard/goals');
+  };
+  
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chat con IA</h1>
-        <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-          <MoreVertical size={20} />
-        </button>
-      </div>
-      
+    <div className="flex flex-col h-[calc(100vh-12rem)]">
       <Card className="flex-1 flex flex-col p-4 overflow-hidden">
-        {/* Área de mensajes */}
         <div className="flex-1 overflow-y-auto mb-4 pr-2">
           {messages.map((message) => (
             <ChatMessage key={message.id} message={message} />
           ))}
+          
+          {/* Componente de integración de metas */}
+          {lastUserMessage && (
+            <GoalChatIntegration 
+              message={lastUserMessage} 
+              onCreateGoal={handleCreateGoal} 
+            />
+          )}
+          
+          {/* Mostrar botón para ver metas creadas */}
+          {createdGoals.length > 0 && (
+            <div className="flex justify-center my-4">
+              <button 
+                className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                onClick={handleViewGoals}
+              >
+                <Target className="h-4 w-4 mr-2" />
+                Ver {createdGoals.length} {createdGoals.length === 1 ? 'meta creada' : 'metas creadas'}
+              </button>
+            </div>
+          )}
+          
           <div ref={messagesEndRef} />
         </div>
         
-        {/* Sugerencias */}
-        {messages.length < 3 && (
+        {messages.length === 1 && (
           <ChatSuggestions onSelectSuggestion={handleSelectSuggestion} />
         )}
         
-        {/* Área de entrada */}
-        <div className="mt-auto">
-          <div className="flex items-center bg-gray-50 dark:bg-gray-800 rounded-lg p-2">
-            <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Paperclip size={20} />
-            </button>
-            <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-              <ImageIcon size={20} />
-            </button>
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Escribe un mensaje..."
-              className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none px-3 py-2 text-gray-900 dark:text-white"
-            />
-            <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-              <Mic size={20} />
-            </button>
-            <button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading}
-              className={`p-2 rounded-full ${
-                inputValue.trim() && !isLoading
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                  : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400 cursor-not-allowed'
-              }`}
-            >
+        <div className="relative">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Escribe un mensaje..."
+            className="w-full p-3 pr-12 border rounded-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
+            disabled={isLoading}
+          />
+          <button
+            onClick={handleSendMessage}
+            disabled={!inputValue.trim() || isLoading}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <div className="h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
               <Send size={20} />
-            </button>
-          </div>
-          <p className="text-xs text-center mt-2 text-gray-500 dark:text-gray-400 flex items-center justify-center">
-            <Sparkles size={12} className="mr-1" />
-            Potenciado por IA • Tus datos están seguros y son privados
-          </p>
+            )}
+          </button>
         </div>
       </Card>
     </div>
