@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import logging
 import os
 from dotenv import load_dotenv
+from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions
 
 # Cargar variables de entorno
 load_dotenv()
@@ -57,6 +58,13 @@ async def global_exception_handler(request, exc):
 # Verificar si estamos en modo desarrollo
 if os.environ.get("ENV", "development") == "development":
     print("Ejecutando en modo desarrollo")
+
+# Incluir routers
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(goals.router, prefix="/goals", tags=["goals"])
+app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+app.include_router(ai_chat.router, prefix="/ai-chat", tags=["ai-chat"])
+app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
 
 if __name__ == "__main__":
     import uvicorn
