@@ -14,9 +14,16 @@ import {
   DollarSign, 
   Dumbbell, 
   Target,
-  CheckSquare
+  CheckSquare,
+  User,
+  MessageCircle,
+  Activity
 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import { GoalChatIntegration } from './GoalChatIntegration';
+import { PersonalizedPlanGenerator } from './PersonalizedPlanGenerator';
+import { PatternAnalyzer } from './PatternAnalyzer';
+import { LearningAdaptation } from './LearningAdaptation';
 import { Goal } from '@/types/goal';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/components/ui/use-toast';
@@ -110,6 +117,15 @@ export function AiChatInterface() {
   const [createdTasks, setCreatedTasks] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [messageMetadata, setMessageMetadata] = useState<any>(null);
+  const [showPlanGenerator, setShowPlanGenerator] = useState(false);
+  const [showPatternAnalyzer, setShowPatternAnalyzer] = useState(false);
+  const [showLearningSystem, setShowLearningSystem] = useState(false);
+  const [aiSettings, setAiSettings] = useState({
+    suggestionsFrequency: 2,
+    detailLevel: 1,
+    aiPersonality: 'balanced',
+    // Otros ajustes configurables
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   
@@ -291,79 +307,287 @@ Puedes ver y gestionar esta tarea en tu tablero de tareas. ¿Quieres que estable
     router.push('/dashboard/tasks');
   };
   
+  // Mock de datos de usuario para los componentes
+  const mockUserData = {
+    tasks: [
+      { id: 1, title: "Completar informe trimestral", status: "completed", due_date: "2023-06-10", priority: "high", completed_on: "2023-06-09" },
+      { id: 2, title: "Reunión con el equipo de marketing", status: "completed", due_date: "2023-06-12", priority: "medium", completed_on: "2023-06-12" },
+      { id: 3, title: "Revisar propuesta de proyecto", status: "pending", due_date: "2023-06-15", priority: "high" },
+      { id: 4, title: "Actualizar documentación técnica", status: "pending", due_date: "2023-06-17", priority: "medium" },
+      { id: 5, title: "Preparar presentación para cliente", status: "completed", due_date: "2023-06-08", priority: "high", completed_on: "2023-06-07" }
+    ],
+    habits: [
+      { id: 1, title: "Ejercicio matutino", frequency: "daily", streak: 15, last_checked: "2023-06-14" },
+      { id: 2, title: "Lectura", frequency: "daily", streak: 8, last_checked: "2023-06-14" },
+      { id: 3, title: "Meditación", frequency: "daily", streak: 5, last_checked: "2023-06-14" },
+      { id: 4, title: "Aprender algo nuevo", frequency: "weekly", streak: 3, last_checked: "2023-06-11" }
+    ],
+    goals: [
+      { id: 1, title: "Completar curso de desarrollo web", progress: 75, target_date: "2023-07-30", category: "learning" },
+      { id: 2, title: "Ahorrar para vacaciones", progress: 50, target_date: "2023-12-15", category: "finance" },
+      { id: 3, title: "Correr un medio maratón", progress: 60, target_date: "2023-09-10", category: "fitness" }
+    ],
+    completionStats: {
+      tasks: { completed: 25, total: 35 },
+      habits: { consistency: 0.85 },
+      goals: { achieved: 4, inProgress: 3, total: 8 }
+    },
+    preferences: {
+      workHours: { start: "08:00", end: "17:00" },
+      focusTime: { morning: true, afternoon: false, evening: true },
+      preferredCategories: ["productivity", "learning", "fitness"]
+    }
+  };
+  
+  // Mock para el historial de interacciones
+  const mockInteractionHistory = [
+    { 
+      timestamp: "2023-06-10T09:15:00", 
+      type: "goal_creation", 
+      details: { goal: "Completar curso de desarrollo web" } 
+    },
+    { 
+      timestamp: "2023-06-11T14:30:00", 
+      type: "task_completion", 
+      details: { task: "Revisar módulo 3 del curso" } 
+    },
+    { 
+      timestamp: "2023-06-12T08:45:00", 
+      type: "chat_interaction", 
+      details: { query: "¿Cómo puedo mejorar mi productividad?", satisfaction: 0.9 } 
+    },
+    { 
+      timestamp: "2023-06-13T16:20:00", 
+      type: "habit_streak", 
+      details: { habit: "Ejercicio matutino", streak: 10 } 
+    }
+  ];
+  
+  // Manejador para la creación de un plan personalizado
+  const handlePlanCreated = (plan) => {
+    // Crear un mensaje que resume el plan generado
+    const planSummary = `
+      He generado un plan personalizado para ti:
+      
+      **${plan.title}**
+      
+      Este plan se enfoca en ${plan.focus_areas.join(', ')} y tiene una duración de ${plan.duration_weeks} semanas.
+      
+      Incluye:
+      - ${plan.num_tasks} tareas
+      - ${plan.num_habits} hábitos recomendados
+      - ${plan.num_milestones} hitos principales
+      
+      El plan está diseñado considerando tu estilo de productividad ${plan.productivity_style} y tus preferencias de ${plan.preferences.join(', ')}.
+    `;
+    
+    // Añadir mensaje a la conversación
+    setMessages(prev => [
+      ...prev, 
+      { role: 'assistant', content: planSummary }
+    ]);
+    
+    // Cerrar el generador de planes
+    setShowPlanGenerator(false);
+  };
+  
+  // Manejador para cuando se completa el análisis de patrones
+  const handleAnalysisComplete = (analysis) => {
+    // Crear un mensaje con los insights principales del análisis
+    const analysisSummary = `
+      He analizado tus patrones de actividad y estos son los principales insights:
+      
+      **Resumen:**
+      ${analysis.summary}
+      
+      **Patrones Clave:**
+      ${analysis.key_insights.slice(0, 3).map(insight => `- ${insight}`).join('\n')}
+      
+      **Factores de Éxito:**
+      ${analysis.success_factors.slice(0, 2).map(factor => `- ${factor.factor}: ${factor.recommendation}`).join('\n')}
+    `;
+    
+    // Añadir mensaje a la conversación
+    setMessages(prev => [
+      ...prev, 
+      { role: 'assistant', content: analysisSummary }
+    ]);
+    
+    // Cerrar el analizador de patrones
+    setShowPatternAnalyzer(false);
+  };
+  
+  // Manejador para cuando se actualizan los ajustes de IA
+  const handleSettingsUpdated = (newSettings) => {
+    setAiSettings(prev => ({
+      ...prev,
+      ...newSettings
+    }));
+    
+    // Mensaje de confirmación opcional
+    setMessages(prev => [
+      ...prev, 
+      { 
+        role: 'assistant', 
+        content: `He actualizado mis preferencias de interacción según tus necesidades. Ahora te proporcionaré ${['menos', 'pocas', 'algunas', 'más'][newSettings.suggestionsFrequency || 2]} sugerencias y respuestas ${['concisas', 'balanceadas', 'detalladas'][newSettings.detailLevel || 1]}.` 
+      }
+    ]);
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)]">
-      <Card className="flex-1 flex flex-col p-4 overflow-hidden">
-        <div className="flex-1 overflow-y-auto mb-4 pr-2">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} message={message} />
-          ))}
+    <div className="flex h-[calc(100vh-4rem)] flex-col rounded-md border bg-background shadow">
+      <div className="flex items-center justify-between border-b px-4 py-2">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-5 w-5" />
+          <h2 className="font-semibold">Asistente de IA</h2>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1"
+            onClick={() => setShowPlanGenerator(true)}
+          >
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline">Plan Personalizado</span>
+          </Button>
           
-          {/* Componente de integración de metas */}
-          {lastUserMessage && messageMetadata && (
-            <GoalChatIntegration 
-              message={lastUserMessage}
-              metadata={messageMetadata}
-              onCreateGoal={handleCreateGoal}
-              onCreateTask={handleCreateTask}
-            />
-          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1"
+            onClick={() => setShowPatternAnalyzer(true)}
+          >
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Análisis de Patrones</span>
+          </Button>
           
-          {/* Mostrar botones para ver metas y tareas creadas */}
-          {(createdGoals.length > 0 || createdTasks.length > 0) && (
-            <div className="flex justify-center my-4 gap-3">
-              {createdGoals.length > 0 && (
-                <button 
-                  className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
-                  onClick={handleViewGoals}
-                >
-                  <Target className="h-4 w-4 mr-2" />
-                  Ver {createdGoals.length} {createdGoals.length === 1 ? 'meta creada' : 'metas creadas'}
-                </button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-1"
+            onClick={() => setShowLearningSystem(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Aprendizaje</span>
+          </Button>
+        </div>
+      </div>
+      
+      <div className="flex flex-col h-[calc(100vh-12rem)]">
+        <Card className="flex-1 flex flex-col p-4 overflow-hidden">
+          {showPlanGenerator ? (
+            <div className="flex-1 overflow-y-auto p-2">
+              <PersonalizedPlanGenerator 
+                userData={mockUserData}
+                onClose={() => setShowPlanGenerator(false)}
+                onPlanCreated={handlePlanCreated}
+              />
+            </div>
+          ) : showPatternAnalyzer ? (
+            <div className="flex-1 overflow-y-auto p-2">
+              <PatternAnalyzer
+                userData={mockUserData}
+                onClose={() => setShowPatternAnalyzer(false)}
+                onAnalysisComplete={handleAnalysisComplete}
+              />
+            </div>
+          ) : showLearningSystem ? (
+            <div className="flex-1 overflow-y-auto p-2">
+              <LearningAdaptation
+                userData={mockUserData}
+                interactionHistory={mockInteractionHistory}
+                onClose={() => setShowLearningSystem(false)}
+                onSettingsUpdated={handleSettingsUpdated}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto mb-4 pr-2">
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                
+                {/* Componente de integración de metas */}
+                {lastUserMessage && messageMetadata && (
+                  <GoalChatIntegration 
+                    message={lastUserMessage}
+                    metadata={messageMetadata}
+                    onCreateGoal={handleCreateGoal}
+                    onCreateTask={handleCreateTask}
+                  />
+                )}
+                
+                {/* Mostrar botones para ver metas y tareas creadas */}
+                {(createdGoals.length > 0 || createdTasks.length > 0) && (
+                  <div className="flex justify-center my-4 gap-3">
+                    {createdGoals.length > 0 && (
+                      <button 
+                        className="px-4 py-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full text-sm flex items-center hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                        onClick={handleViewGoals}
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        Ver {createdGoals.length} {createdGoals.length === 1 ? 'meta creada' : 'metas creadas'}
+                      </button>
+                    )}
+                    
+                    {createdTasks.length > 0 && (
+                      <button 
+                        className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full text-sm flex items-center hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors"
+                        onClick={handleViewTasks}
+                      >
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Ver {createdTasks.length} {createdTasks.length === 1 ? 'tarea creada' : 'tareas creadas'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
+              </div>
+              
+              {messages.length === 1 && (
+                <>
+                  <ChatSuggestions onSelectSuggestion={handleSelectSuggestion} />
+                  
+                  <div className="mt-3 mb-2">
+                    <button 
+                      className="w-full px-4 py-3 bg-primary/10 hover:bg-primary/20 transition-colors rounded-lg text-sm flex items-center justify-center gap-2"
+                      onClick={() => setShowPlanGenerator(true)}
+                    >
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span>Generar un plan personalizado con IA</span>
+                    </button>
+                  </div>
+                </>
               )}
               
-              {createdTasks.length > 0 && (
-                <button 
-                  className="px-4 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full text-sm flex items-center hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors"
-                  onClick={handleViewTasks}
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="text"
+                  value={inputValue}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Escribe un mensaje..."
+                  className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800"
+                  disabled={isLoading}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="p-2 rounded-full bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <CheckSquare className="h-4 w-4 mr-2" />
-                  Ver {createdTasks.length} {createdTasks.length === 1 ? 'tarea creada' : 'tareas creadas'}
+                  {isLoading ? (
+                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Send className="h-5 w-5" />
+                  )}
                 </button>
-              )}
-            </div>
+              </div>
+            </>
           )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-        
-        {messages.length === 1 && (
-          <ChatSuggestions onSelectSuggestion={handleSelectSuggestion} />
-        )}
-        
-        <div className="flex items-center gap-2 mt-2">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje..."
-            className="flex-1 px-4 py-2 rounded-full border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800"
-            disabled={isLoading}
-          />
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            className="p-2 rounded-full bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </button>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 } 

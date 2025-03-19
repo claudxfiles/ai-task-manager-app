@@ -18,7 +18,9 @@ import {
   LogOut,
   User,
   Target,
-  CheckCircle2
+  CheckCircle2,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -109,6 +111,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <DollarSign className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
                 <span className="ml-3">Finanzas</span>
+              </Link>
+            </li>
+            <li>
+              <Link 
+                href="/dashboard/ai-assistant" 
+                className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              >
+                <Sparkles className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                <span className="ml-3">Asistente IA</span>
+                <span className="flex ms-auto items-center justify-center px-2 py-0.5 text-xs font-medium text-indigo-600 bg-indigo-100 dark:bg-indigo-900 dark:text-indigo-300 rounded">Nuevo</span>
               </Link>
             </li>
             <li>

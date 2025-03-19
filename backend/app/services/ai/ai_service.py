@@ -11,7 +11,10 @@ from app.core.ai_config import (
     get_ai_settings, 
     GOAL_DETECTION_PROMPT,
     GOAL_PLAN_PROMPT,
-    CHAT_SYSTEM_PROMPT
+    CHAT_SYSTEM_PROMPT,
+    PERSONALIZED_PLAN_PROMPT,
+    PATTERN_ANALYSIS_PROMPT,
+    LEARNING_ADAPTATION_PROMPT
 )
 from app.schemas.ai import ChatMessage, MessageRole, StreamingResponse
 from app.schemas.goal import GoalMetadata
@@ -384,6 +387,420 @@ class OpenRouterService:
             return formatted
             
         return messages
+
+    async def generate_personalized_plan(self, 
+                                        user_data: Dict[str, Any], 
+                                        goal_type: str, 
+                                        preferences: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Genera un plan personalizado basado en datos históricos del usuario y sus preferencias
+        
+        Args:
+            user_data: Datos históricos del usuario (tareas, hábitos, metas)
+            goal_type: Tipo de meta para la que se generará el plan
+            preferences: Preferencias específicas del usuario
+            
+        Returns:
+            Plan personalizado adaptado al usuario
+        """
+        try:
+            # Preparar análisis de los datos históricos
+            task_history = user_data.get("tasks", [])
+            habit_history = user_data.get("habits", [])
+            goal_history = user_data.get("goals", [])
+            
+            # Analizar patrones de comportamiento
+            completion_patterns = self._analyze_completion_patterns(task_history)
+            habit_consistency = self._analyze_habit_consistency(habit_history)
+            success_factors = self._analyze_goal_success_factors(goal_history)
+            
+            # Considerar preferencias del usuario
+            user_preferences = {
+                "preferred_time_blocks": preferences.get("preferred_time_blocks", []),
+                "difficulty_preference": preferences.get("difficulty_preference", "balanced"),
+                "priority_areas": preferences.get("priority_areas", []),
+                "learning_style": preferences.get("learning_style", "balanced")
+            }
+            
+            # Construir contexto para la IA
+            context = f"""
+            # Análisis de usuario para generación de plan personalizado
+            
+            ## Tipo de meta
+            {goal_type}
+            
+            ## Patrones de cumplimiento de tareas
+            {json.dumps(completion_patterns, indent=2)}
+            
+            ## Consistencia de hábitos
+            {json.dumps(habit_consistency, indent=2)}
+            
+            ## Factores de éxito en metas previas
+            {json.dumps(success_factors, indent=2)}
+            
+            ## Preferencias del usuario
+            {json.dumps(user_preferences, indent=2)}
+            """
+            
+            # Preparar mensaje para la IA
+            messages = [
+                {"role": "system", "content": PERSONALIZED_PLAN_PROMPT},
+                {"role": "user", "content": context}
+            ]
+            
+            # Configuración específica para planificación personalizada
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": get_ai_settings().TEMPERATURE_PERSONALIZED_PLAN,
+                "max_tokens": get_ai_settings().MAX_TOKENS_PERSONALIZED_PLAN,
+                "stream": False
+            }
+            
+            # Enviar solicitud
+            response = await self._send_request(payload)
+            
+            if "choices" in response and len(response["choices"]) > 0:
+                response_text = response["choices"][0]["message"]["content"]
+                
+                # Extraer JSON del texto
+                try:
+                    start_idx = response_text.find('{')
+                    end_idx = response_text.rfind('}')
+                    
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_text = response_text[start_idx:end_idx+1]
+                        data = json.loads(json_text)
+                        
+                        if "personalized_plan" in data:
+                            logger.info(f"Plan personalizado generado para {goal_type}")
+                            return data
+                    
+                    logger.warning("No se pudo encontrar un JSON válido en la respuesta del plan personalizado")
+                    return {"error": "Formato de respuesta inválido"}
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.warning(f"Error decodificando JSON del plan personalizado: {e}")
+                    return {"error": f"Error procesando respuesta: {str(e)}"}
+            else:
+                logger.error(f"Respuesta inválida de la API: {response}")
+                return {"error": "No se pudo generar el plan personalizado"}
+        except Exception as e:
+            logger.error(f"Error generando plan personalizado: {str(e)}")
+            return {"error": f"Error generando plan personalizado: {str(e)}"}
+
+    def _analyze_completion_patterns(self, task_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analiza patrones en la completitud de tareas
+        
+        Args:
+            task_history: Historial de tareas del usuario
+            
+        Returns:
+            Análisis de patrones de completitud
+        """
+        if not task_history:
+            return {"no_data": True}
+            
+        total_tasks = len(task_history)
+        completed_tasks = sum(1 for task in task_history if task.get("completed", False))
+        completion_rate = (completed_tasks / total_tasks) if total_tasks > 0 else 0
+        
+        # Análisis por días de la semana
+        days_analysis = {
+            "monday": {"total": 0, "completed": 0},
+            "tuesday": {"total": 0, "completed": 0},
+            "wednesday": {"total": 0, "completed": 0},
+            "thursday": {"total": 0, "completed": 0},
+            "friday": {"total": 0, "completed": 0},
+            "saturday": {"total": 0, "completed": 0},
+            "sunday": {"total": 0, "completed": 0}
+        }
+        
+        for task in task_history:
+            if "due_date" in task:
+                try:
+                    due_date = datetime.fromisoformat(task["due_date"].replace("Z", "+00:00"))
+                    day_name = due_date.strftime("%A").lower()
+                    if day_name in days_analysis:
+                        days_analysis[day_name]["total"] += 1
+                        if task.get("completed", False):
+                            days_analysis[day_name]["completed"] += 1
+                except (ValueError, TypeError):
+                    pass
+        
+        # Calcular tasa de completitud por día
+        for day, counts in days_analysis.items():
+            if counts["total"] > 0:
+                counts["completion_rate"] = counts["completed"] / counts["total"]
+            else:
+                counts["completion_rate"] = 0
+        
+        # Encontrar mejor día y peor día
+        best_day = max(days_analysis.items(), key=lambda x: x[1].get("completion_rate", 0))
+        worst_day = min(days_analysis.items(), key=lambda x: x[1].get("completion_rate", 0) if x[1].get("total", 0) > 0 else 1)
+        
+        return {
+            "overall_completion_rate": completion_rate,
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks,
+            "days_analysis": days_analysis,
+            "best_day": best_day[0],
+            "worst_day": worst_day[0]
+        }
+        
+    def _analyze_habit_consistency(self, habit_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analiza la consistencia en hábitos
+        
+        Args:
+            habit_history: Historial de hábitos del usuario
+            
+        Returns:
+            Análisis de consistencia
+        """
+        if not habit_history:
+            return {"no_data": True}
+            
+        habits_analysis = {}
+        
+        # Agrupar registros por hábito
+        for habit_log in habit_history:
+            habit_id = habit_log.get("habit_id", "unknown")
+            if habit_id not in habits_analysis:
+                habits_analysis[habit_id] = {
+                    "name": habit_log.get("habit_name", "Hábito desconocido"),
+                    "total_logs": 0,
+                    "completed_logs": 0,
+                    "streak": habit_log.get("current_streak", 0),
+                    "best_streak": habit_log.get("best_streak", 0)
+                }
+            
+            habits_analysis[habit_id]["total_logs"] += 1
+            if habit_log.get("completed", False):
+                habits_analysis[habit_id]["completed_logs"] += 1
+        
+        # Calcular consistencia por hábito
+        for habit_id, analysis in habits_analysis.items():
+            if analysis["total_logs"] > 0:
+                analysis["consistency_rate"] = analysis["completed_logs"] / analysis["total_logs"]
+            else:
+                analysis["consistency_rate"] = 0
+        
+        # Identificar hábitos más y menos consistentes
+        if habits_analysis:
+            most_consistent = max(habits_analysis.items(), key=lambda x: x[1].get("consistency_rate", 0))
+            least_consistent = min(habits_analysis.items(), key=lambda x: x[1].get("consistency_rate", 0))
+            
+            return {
+                "habits_count": len(habits_analysis),
+                "habits_details": habits_analysis,
+                "most_consistent_habit": {
+                    "id": most_consistent[0],
+                    "name": most_consistent[1]["name"],
+                    "consistency_rate": most_consistent[1]["consistency_rate"]
+                },
+                "least_consistent_habit": {
+                    "id": least_consistent[0],
+                    "name": least_consistent[1]["name"],
+                    "consistency_rate": least_consistent[1]["consistency_rate"]
+                }
+            }
+        else:
+            return {"no_data": True}
+    
+    def _analyze_goal_success_factors(self, goal_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Analiza factores de éxito en metas previas
+        
+        Args:
+            goal_history: Historial de metas del usuario
+            
+        Returns:
+            Análisis de factores de éxito
+        """
+        if not goal_history:
+            return {"no_data": True}
+            
+        total_goals = len(goal_history)
+        completed_goals = sum(1 for goal in goal_history if goal.get("status", "") == "completed")
+        success_rate = (completed_goals / total_goals) if total_goals > 0 else 0
+        
+        # Análisis por tipo de meta
+        types_analysis = {}
+        for goal in goal_history:
+            goal_type = goal.get("type", "unknown")
+            
+            if goal_type not in types_analysis:
+                types_analysis[goal_type] = {"total": 0, "completed": 0}
+            
+            types_analysis[goal_type]["total"] += 1
+            if goal.get("status", "") == "completed":
+                types_analysis[goal_type]["completed"] += 1
+        
+        # Calcular tasa de éxito por tipo
+        for goal_type, counts in types_analysis.items():
+            if counts["total"] > 0:
+                counts["success_rate"] = counts["completed"] / counts["total"]
+            else:
+                counts["success_rate"] = 0
+        
+        # Identificar tipos más y menos exitosos
+        if types_analysis:
+            most_successful = max(types_analysis.items(), key=lambda x: x[1].get("success_rate", 0))
+            least_successful = min(types_analysis.items(), key=lambda x: x[1].get("success_rate", 0) 
+                                 if x[1].get("total", 0) > 0 else 1)
+        else:
+            most_successful = ("unknown", {"success_rate": 0})
+            least_successful = ("unknown", {"success_rate": 0})
+        
+        return {
+            "overall_success_rate": success_rate,
+            "total_goals": total_goals,
+            "completed_goals": completed_goals,
+            "types_analysis": types_analysis,
+            "most_successful_type": most_successful[0],
+            "least_successful_type": least_successful[0]
+        }
+
+    async def _analyze_patterns(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analiza patrones avanzados en los datos históricos del usuario
+        
+        Args:
+            user_data: Datos históricos del usuario
+            
+        Returns:
+            Análisis de patrones
+        """
+        try:
+            # Preparar los datos para el análisis
+            data_context = json.dumps(user_data, indent=2)
+            
+            # Preparar mensaje para la IA
+            messages = [
+                {"role": "system", "content": PATTERN_ANALYSIS_PROMPT},
+                {"role": "user", "content": f"Analiza los siguientes datos de usuario para identificar patrones:\n\n{data_context}"}
+            ]
+            
+            # Configuración específica para análisis de patrones
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": get_ai_settings().TEMPERATURE_PATTERN_ANALYSIS,
+                "max_tokens": get_ai_settings().MAX_TOKENS_PATTERN_ANALYSIS,
+                "stream": False
+            }
+            
+            # Enviar solicitud
+            response = await self._send_request(payload)
+            
+            if "choices" in response and len(response["choices"]) > 0:
+                response_text = response["choices"][0]["message"]["content"]
+                
+                # Extraer JSON del texto
+                try:
+                    start_idx = response_text.find('{')
+                    end_idx = response_text.rfind('}')
+                    
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_text = response_text[start_idx:end_idx+1]
+                        data = json.loads(json_text)
+                        
+                        if "pattern_analysis" in data:
+                            logger.info("Análisis de patrones completado")
+                            return data
+                    
+                    logger.warning("No se pudo encontrar un JSON válido en la respuesta de análisis de patrones")
+                    return {"error": "Formato de respuesta inválido"}
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.warning(f"Error decodificando JSON del análisis de patrones: {e}")
+                    return {"error": f"Error procesando respuesta: {str(e)}"}
+            else:
+                logger.error(f"Respuesta inválida de la API: {response}")
+                return {"error": "No se pudo generar el análisis de patrones"}
+        except Exception as e:
+            logger.error(f"Error en análisis de patrones: {str(e)}")
+            return {"error": f"Error en análisis de patrones: {str(e)}"}
+    
+    async def analyze_patterns(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Interfaz pública para analizar patrones avanzados
+        
+        Args:
+            user_data: Datos históricos del usuario
+            
+        Returns:
+            Análisis de patrones
+        """
+        return await self._analyze_patterns(user_data)
+    
+    async def generate_learning_adaptation(self, 
+                                         user_data: Dict[str, Any], 
+                                         interaction_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Genera adaptaciones basadas en aprendizaje continuo sobre las interacciones del usuario
+        
+        Args:
+            user_data: Datos históricos del usuario
+            interaction_history: Historial de interacciones y respuestas a recomendaciones previas
+            
+        Returns:
+            Modelo adaptativo personalizado
+        """
+        try:
+            # Preparar los datos para el análisis
+            context_data = {
+                "user_data": user_data,
+                "interaction_history": interaction_history
+            }
+            
+            data_context = json.dumps(context_data, indent=2)
+            
+            # Preparar mensaje para la IA
+            messages = [
+                {"role": "system", "content": LEARNING_ADAPTATION_PROMPT},
+                {"role": "user", "content": f"Analiza estos datos de interacciones de usuario para generar adaptaciones:\n\n{data_context}"}
+            ]
+            
+            # Configuración específica para adaptación de aprendizaje
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": get_ai_settings().TEMPERATURE_LEARNING_ADAPTATION,
+                "max_tokens": get_ai_settings().MAX_TOKENS_LEARNING_ADAPTATION,
+                "stream": False
+            }
+            
+            # Enviar solicitud
+            response = await self._send_request(payload)
+            
+            if "choices" in response and len(response["choices"]) > 0:
+                response_text = response["choices"][0]["message"]["content"]
+                
+                # Extraer JSON del texto
+                try:
+                    start_idx = response_text.find('{')
+                    end_idx = response_text.rfind('}')
+                    
+                    if start_idx >= 0 and end_idx > start_idx:
+                        json_text = response_text[start_idx:end_idx+1]
+                        data = json.loads(json_text)
+                        
+                        if "learning_adaptation" in data:
+                            logger.info("Adaptación de aprendizaje generada")
+                            return data
+                    
+                    logger.warning("No se pudo encontrar un JSON válido en la respuesta de adaptación")
+                    return {"error": "Formato de respuesta inválido"}
+                except (json.JSONDecodeError, ValueError) as e:
+                    logger.warning(f"Error decodificando JSON de la adaptación: {e}")
+                    return {"error": f"Error procesando respuesta: {str(e)}"}
+            else:
+                logger.error(f"Respuesta inválida de la API: {response}")
+                return {"error": "No se pudo generar la adaptación de aprendizaje"}
+        except Exception as e:
+            logger.error(f"Error generando adaptación de aprendizaje: {str(e)}")
+            return {"error": f"Error generando adaptación de aprendizaje: {str(e)}"}
 
 # Instancia global del servicio
 openrouter_service = OpenRouterService() 

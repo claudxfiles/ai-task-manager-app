@@ -271,6 +271,126 @@ export interface Database {
           created_at?: string;
         };
       };
+      subscription_plans: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          price: number;
+          currency: string;
+          interval: string;
+          features: Json | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          price: number;
+          currency?: string;
+          interval?: string;
+          features?: Json | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          price?: number;
+          currency?: string;
+          interval?: string;
+          features?: Json | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan_id: string;
+          status: string;
+          payment_provider: string;
+          payment_id: string | null;
+          subscription_id: string | null;
+          current_period_start: string | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan_id: string;
+          status?: string;
+          payment_provider?: string;
+          payment_id?: string | null;
+          subscription_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan_id?: string;
+          status?: string;
+          payment_provider?: string;
+          payment_id?: string | null;
+          subscription_id?: string | null;
+          current_period_start?: string | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      payment_history: {
+        Row: {
+          id: string;
+          user_id: string;
+          subscription_id: string | null;
+          payment_id: string;
+          amount: number;
+          currency: string;
+          status: string;
+          payment_method: string;
+          payment_details: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          subscription_id?: string | null;
+          payment_id: string;
+          amount: number;
+          currency?: string;
+          status: string;
+          payment_method?: string;
+          payment_details?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          subscription_id?: string | null;
+          payment_id?: string;
+          amount?: number;
+          currency?: string;
+          status?: string;
+          payment_method?: string;
+          payment_details?: Json | null;
+          created_at?: string;
+        };
+      };
     };
   };
 } 

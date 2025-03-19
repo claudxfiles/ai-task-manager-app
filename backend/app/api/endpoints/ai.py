@@ -23,6 +23,21 @@ class OpenRouterChatRequest(BaseModel):
     message: str
     model: str = "qwen/qwq-32b:online"
 
+class UserDataRequest(BaseModel):
+    """Datos del usuario para análisis y generación de planes"""
+    user_data: Dict[str, Any]
+    
+class PersonalizedPlanRequest(BaseModel):
+    """Datos para solicitar un plan personalizado"""
+    user_data: Dict[str, Any]
+    goal_type: str
+    preferences: Optional[Dict[str, Any]] = None
+
+class LearningAdaptationRequest(BaseModel):
+    """Datos para solicitar adaptaciones de aprendizaje"""
+    user_data: Dict[str, Any]
+    interaction_history: List[Dict[str, Any]]
+
 @router.post("/openrouter-chat", response_model=ChatResponse)
 async def openrouter_chat(
     request: OpenRouterChatRequest, 
@@ -149,4 +164,65 @@ async def generate_goal_plan(
         raise HTTPException(
             status_code=500,
             detail=f"Error generando plan: {str(e)}"
+        )
+
+@router.post("/generate-personalized-plan", response_model=Dict[str, Any])
+async def generate_personalized_plan(
+    request: PersonalizedPlanRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Genera un plan personalizado basado en datos históricos del usuario
+    """
+    try:
+        plan = await openrouter_service.generate_personalized_plan(
+            user_data=request.user_data,
+            goal_type=request.goal_type,
+            preferences=request.preferences
+        )
+        return plan
+    except Exception as e:
+        logger.error(f"Error generando plan personalizado: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando plan personalizado: {str(e)}"
+        )
+
+@router.post("/analyze-patterns", response_model=Dict[str, Any])
+async def analyze_patterns(
+    request: UserDataRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Analiza patrones avanzados en los datos históricos del usuario
+    """
+    try:
+        analysis = await openrouter_service.analyze_patterns(request.user_data)
+        return analysis
+    except Exception as e:
+        logger.error(f"Error analizando patrones: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analizando patrones: {str(e)}"
+        )
+
+@router.post("/learning-adaptation", response_model=Dict[str, Any])
+async def learning_adaptation(
+    request: LearningAdaptationRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Genera adaptaciones basadas en aprendizaje continuo
+    """
+    try:
+        adaptation = await openrouter_service.generate_learning_adaptation(
+            user_data=request.user_data,
+            interaction_history=request.interaction_history
+        )
+        return adaptation
+    except Exception as e:
+        logger.error(f"Error generando adaptación de aprendizaje: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando adaptación de aprendizaje: {str(e)}"
         )
