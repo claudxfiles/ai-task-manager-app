@@ -5,14 +5,13 @@ import uuid
 
 from app.services.auth import get_current_user
 from app.schemas.user import User
-from app.schemas.habit import Habit, HabitCreate, HabitUpdate, HabitLog, HabitLogCreate, HabitLogUpdate
+from app.schemas.habits import Habit, HabitCreate, HabitUpdate, HabitLog, HabitLogCreate
 from app.db.database import get_supabase_client
 
 router = APIRouter()
 
 @router.get("/", response_model=List[Habit])
 async def read_habits(
-    category: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
@@ -21,16 +20,16 @@ async def read_habits(
     supabase = get_supabase_client()
     
     try:
-        query = supabase.table("habits") \
+        response = supabase.table("habits") \
             .select("*") \
-            .eq("user_id", current_user.id)
+            .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
+            .execute()
         
-        if category:
-            query = query.eq("category", category)
+        if not response.data:
+            return []
         
-        response = query.execute()
-        
-        return response.data
+        return [Habit(**habit) for habit in response.data]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -39,7 +38,7 @@ async def read_habits(
 
 @router.post("/", response_model=Habit)
 async def create_habit(
-    habit: HabitCreate,
+    habit_in: HabitCreate,
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
@@ -48,39 +47,36 @@ async def create_habit(
     supabase = get_supabase_client()
     
     try:
-        now = datetime.utcnow().isoformat()
+        # Crear un objeto con todos los campos necesarios
+        habit_data = habit_in.dict()
         habit_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
         
-        habit_data = {
+        habit_db = {
+            **habit_data,
             "id": habit_id,
             "user_id": current_user.id,
-            "title": habit.title,
-            "description": habit.description,
-            "frequency": habit.frequency,
-            "specific_days": habit.specific_days,
-            "category": habit.category,
-            "reminder_time": habit.reminder_time,
-            "cue": habit.cue,
-            "reward": habit.reward,
-            "current_streak": 0,
-            "best_streak": 0,
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
+            "is_deleted": False,
+            "streak": 0,
+            "best_streak": 0,
+            "total_completions": 0
         }
         
-        response = supabase.table("habits").insert(habit_data).execute()
+        response = supabase.table("habits").insert(habit_db).execute()
         
         if not response.data:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se pudo crear el hábito"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al crear el hábito"
             )
         
-        return response.data[0]
+        return Habit(**response.data[0])
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear hábito: {str(e)}"
+            detail=f"Error al crear el hábito: {str(e)}"
         )
 
 @router.get("/{habit_id}", response_model=Habit)
@@ -89,7 +85,7 @@ async def read_habit(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Obtiene un hábito específico
+    Obtiene un hábito específico por ID
     """
     supabase = get_supabase_client()
     
@@ -98,239 +94,280 @@ async def read_habit(
             .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
             .execute()
         
         if not response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Hábito con id {habit_id} no encontrado"
+                detail="Hábito no encontrado"
             )
         
-        return response.data[0]
+        return Habit(**response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener hábito: {str(e)}"
+            detail=f"Error al obtener el hábito: {str(e)}"
         )
 
 @router.put("/{habit_id}", response_model=Habit)
 async def update_habit(
     habit_id: str,
-    habit: HabitUpdate,
+    habit_in: HabitUpdate,
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Actualiza un hábito
+    Actualiza un hábito específico
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que el hábito existe y pertenece al usuario
-        check_response = supabase.table("habits") \
-            .select("id") \
+        get_response = supabase.table("habits") \
+            .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
             .execute()
         
-        if not check_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Hábito con id {habit_id} no encontrado"
+                detail="Hábito no encontrado"
             )
         
-        # Preparar datos para actualizar
-        update_data = {k: v for k, v in habit.dict().items() if v is not None}
-        update_data["updated_at"] = datetime.utcnow().isoformat()
-        
         # Actualizar el hábito
-        response = supabase.table("habits") \
-            .update(update_data) \
+        habit_data = habit_in.dict(exclude_unset=True)
+        habit_data["updated_at"] = datetime.utcnow().isoformat()
+        
+        update_response = supabase.table("habits") \
+            .update(habit_data) \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
             .execute()
         
-        return response.data[0]
+        if not update_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al actualizar el hábito"
+            )
+        
+        return Habit(**update_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar hábito: {str(e)}"
+            detail=f"Error al actualizar el hábito: {str(e)}"
         )
 
-@router.delete("/{habit_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{habit_id}", response_model=Habit)
 async def delete_habit(
     habit_id: str,
     current_user: User = Depends(get_current_user)
-) -> None:
+) -> Any:
     """
-    Elimina un hábito
+    Elimina (soft delete) un hábito específico
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que el hábito existe y pertenece al usuario
-        check_response = supabase.table("habits") \
-            .select("id") \
+        get_response = supabase.table("habits") \
+            .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
             .execute()
         
-        if not check_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Hábito con id {habit_id} no encontrado"
+                detail="Hábito no encontrado"
             )
         
-        # Eliminar el hábito
-        supabase.table("habits") \
-            .delete() \
+        # Realizar soft delete del hábito
+        delete_data = {
+            "is_deleted": True,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        delete_response = supabase.table("habits") \
+            .update(delete_data) \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
             .execute()
         
-        return
+        if not delete_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al eliminar el hábito"
+            )
+        
+        return Habit(**delete_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar hábito: {str(e)}"
+            detail=f"Error al eliminar el hábito: {str(e)}"
         )
 
-# Endpoints para registros de hábitos (logs)
+# Endpoints para registros de hábitos
+@router.get("/{habit_id}/logs", response_model=List[HabitLog])
+async def read_habit_logs(
+    habit_id: str,
+    from_date: Optional[date] = None,
+    to_date: Optional[date] = None,
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    """
+    Obtiene los registros de un hábito específico, con filtros opcionales por fecha
+    """
+    supabase = get_supabase_client()
+    
+    try:
+        # Verificar primero que el hábito existe y pertenece al usuario
+        habit_response = supabase.table("habits") \
+            .select("id") \
+            .eq("id", habit_id) \
+            .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
+            .execute()
+        
+        if not habit_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Hábito no encontrado"
+            )
+        
+        # Consultar los logs
+        query = supabase.table("habit_logs") \
+            .select("*") \
+            .eq("habit_id", habit_id) \
+            .eq("user_id", current_user.id)
+        
+        if from_date:
+            query = query.gte("date", from_date.isoformat())
+        
+        if to_date:
+            query = query.lte("date", to_date.isoformat())
+        
+        logs_response = query.order("date", desc=True).execute()
+        
+        if not logs_response.data:
+            return []
+        
+        return [HabitLog(**log) for log in logs_response.data]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener registros del hábito: {str(e)}"
+        )
 
 @router.post("/{habit_id}/logs", response_model=HabitLog)
 async def create_habit_log(
     habit_id: str,
-    log: HabitLogCreate,
+    log_in: HabitLogCreate,
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Registra una completitud de hábito
+    Crea un nuevo registro para un hábito específico
     """
     supabase = get_supabase_client()
     
     try:
-        # Verificar que el hábito existe y pertenece al usuario
-        check_response = supabase.table("habits") \
+        # Verificar primero que el hábito existe y pertenece al usuario
+        habit_response = supabase.table("habits") \
             .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
+            .eq("is_deleted", False) \
             .execute()
         
-        if not check_response.data:
+        if not habit_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Hábito con id {habit_id} no encontrado"
+                detail="Hábito no encontrado"
             )
         
-        habit = check_response.data[0]
+        habit = habit_response.data[0]
         
-        # Verificar si ya existe un registro para esta fecha
-        log_check = supabase.table("habit_logs") \
+        # Verificar si ya existe un log para la fecha proporcionada
+        log_date = log_in.date.isoformat() if isinstance(log_in.date, date) else log_in.date
+        existing_log_response = supabase.table("habit_logs") \
             .select("id") \
             .eq("habit_id", habit_id) \
-            .eq("completed_date", log.completed_date.isoformat()) \
+            .eq("user_id", current_user.id) \
+            .eq("date", log_date) \
             .execute()
         
-        if log_check.data:
+        if existing_log_response.data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Ya existe un registro para este hábito en la fecha {log.completed_date}"
+                detail="Ya existe un registro para esta fecha"
             )
         
         # Crear el registro
         log_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
         log_data = {
             "id": log_id,
             "habit_id": habit_id,
-            "completed_date": log.completed_date.isoformat(),
-            "notes": log.notes,
-            "quality_rating": log.quality_rating,
-            "emotion": log.emotion,
-            "created_at": datetime.utcnow().isoformat()
+            "user_id": current_user.id,
+            "date": log_date,
+            "completed": log_in.completed,
+            "notes": log_in.notes,
+            "created_at": now,
+            "updated_at": now
         }
         
-        response = supabase.table("habit_logs").insert(log_data).execute()
+        log_response = supabase.table("habit_logs").insert(log_data).execute()
         
-        # Actualizar el streak (racha) del hábito
-        yesterday = date.today() - timedelta(days=1)
-        yesterday_log = supabase.table("habit_logs") \
-            .select("id") \
-            .eq("habit_id", habit_id) \
-            .eq("completed_date", yesterday.isoformat()) \
-            .execute()
-        
-        current_streak = habit.get("current_streak", 0)
-        best_streak = habit.get("best_streak", 0)
-        
-        # Si es hoy o ayer, aumentar la racha
-        if log.completed_date == date.today() or (yesterday_log.data and log.completed_date == yesterday):
-            current_streak += 1
-        else:
-            # Reiniciar racha si hay un hueco
-            current_streak = 1
-        
-        # Actualizar mejor racha si corresponde
-        if current_streak > best_streak:
-            best_streak = current_streak
-        
-        # Actualizar el hábito con la nueva información de racha
-        supabase.table("habits") \
-            .update({
-                "current_streak": current_streak,
-                "best_streak": best_streak,
-                "updated_at": datetime.utcnow().isoformat()
-            }) \
-            .eq("id", habit_id) \
-            .execute()
-        
-        return response.data[0]
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al registrar completitud de hábito: {str(e)}"
-        )
-
-@router.get("/{habit_id}/logs", response_model=List[HabitLog])
-async def read_habit_logs(
-    habit_id: str,
-    start_date: Optional[date] = None,
-    end_date: Optional[date] = None,
-    current_user: User = Depends(get_current_user)
-) -> Any:
-    """
-    Obtiene los registros de un hábito
-    """
-    supabase = get_supabase_client()
-    
-    try:
-        # Verificar que el hábito existe y pertenece al usuario
-        check_response = supabase.table("habits") \
-            .select("id") \
-            .eq("id", habit_id) \
-            .eq("user_id", current_user.id) \
-            .execute()
-        
-        if not check_response.data:
+        if not log_response.data:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Hábito con id {habit_id} no encontrado"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al crear el registro del hábito"
             )
         
-        # Consultar los registros
-        query = supabase.table("habit_logs") \
-            .select("*") \
-            .eq("habit_id", habit_id)
+        # Actualizar estadísticas del hábito si se completó
+        if log_in.completed:
+            # Obtener todos los logs para calcular el streak actual
+            all_logs_response = supabase.table("habit_logs") \
+                .select("date, completed") \
+                .eq("habit_id", habit_id) \
+                .eq("user_id", current_user.id) \
+                .eq("completed", True) \
+                .order("date", desc=False) \
+                .execute()
+            
+            # Aquí calcular el streak actual, mejor streak y completados totales
+            # (Este cálculo puede ser más complejo dependiendo de la frecuencia del hábito)
+            total_completions = len([l for l in all_logs_response.data if l["completed"]])
+            
+            # Actualizar el hábito con las nuevas estadísticas
+            habit_update = {
+                "updated_at": now,
+                "total_completions": total_completions,
+                # Agregar cálculos de streak aquí
+            }
+            
+            supabase.table("habits") \
+                .update(habit_update) \
+                .eq("id", habit_id) \
+                .eq("user_id", current_user.id) \
+                .execute()
         
-        if start_date:
-            query = query.gte("completed_date", start_date.isoformat())
-        
-        if end_date:
-            query = query.lte("completed_date", end_date.isoformat())
-        
-        response = query.order("completed_date", desc=True).execute()
-        
-        return response.data
+        return HabitLog(**log_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener registros de hábito: {str(e)}"
+            detail=f"Error al crear el registro del hábito: {str(e)}"
         ) 

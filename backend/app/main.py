@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 import os
 from dotenv import load_dotenv
-from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions
+from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions, finance, habits
+from app.api.router import api_router
+from app.core.config import settings
 
 # Cargar variables de entorno
 load_dotenv()
@@ -18,9 +20,12 @@ logger = logging.getLogger(__name__)
 
 # Crear la aplicación FastAPI
 app = FastAPI(
-    title="Task Manager API",
-    description="API para la aplicación de gestión de tareas y metas potenciada por IA",
-    version="0.1.0",
+    title=settings.PROJECT_NAME,
+    version=settings.PROJECT_VERSION,
+    description="API para el proyecto AI Task Manager",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
 )
 
 # Configurar CORS - Permitimos todos los orígenes en desarrollo
@@ -40,11 +45,7 @@ async def health_check():
 # Ruta raíz
 @app.get("/")
 async def root():
-    return {
-        "name": "Task Manager API",
-        "version": "0.1.0",
-        "status": "running"
-    }
+    return {"message": "API AI Task Manager funcionando correctamente"}
 
 # Manejador de excepciones
 @app.exception_handler(Exception)
@@ -60,11 +61,45 @@ if os.environ.get("ENV", "development") == "development":
     print("Ejecutando en modo desarrollo")
 
 # Incluir routers
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(goals.router, prefix="/goals", tags=["goals"])
-app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
-app.include_router(ai_chat.router, prefix="/ai-chat", tags=["ai-chat"])
-app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscriptions"])
+app.include_router(
+    api_router,
+    prefix="/api",
+)
+
+app.include_router(
+    auth.router,
+    prefix="/api/auth",
+    tags=["auth"],
+)
+
+app.include_router(
+    goals.router,
+    prefix="/api/goals",
+    tags=["goals"],
+)
+
+app.include_router(
+    tasks.router,
+    prefix="/api/tasks",
+    tags=["tasks"],
+)
+
+app.include_router(
+    finance.router,
+    prefix="/api/finance",
+    tags=["finance"],
+)
+
+app.include_router(
+    habits.router,
+    prefix="/api/habits",
+    tags=["habits"],
+)
+
+# Servir archivos estáticos si existe la carpeta
+static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 if __name__ == "__main__":
     import uvicorn

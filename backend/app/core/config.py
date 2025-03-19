@@ -8,8 +8,9 @@ class Settings(BaseSettings):
     Configuración general de la aplicación
     """
     # Configuración de la API
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/api"
     PROJECT_NAME: str = "Task Manager API"
+    PROJECT_VERSION: str = "0.1.0"
     
     # Configuración de base de datos
     DATABASE_URL: Optional[str] = os.getenv("DATABASE_URL")
@@ -43,6 +44,7 @@ class Settings(BaseSettings):
     SUPABASE_ANON_KEY: str = os.getenv("SUPABASE_ANON_KEY", "")
     SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "") or os.getenv("SUPABASE_ANON_KEY", "")
     SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "")
     
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")

@@ -11,7 +11,7 @@ from app.db.database import get_supabase_client
 router = APIRouter()
 
 # Endpoints para transacciones
-@router.get("/transactions", response_model=List[Transaction])
+@router.get("/transactions/", response_model=List[Transaction])
 async def read_transactions(
     transaction_type: Optional[str] = None,
     current_user: User = Depends(get_current_user)
@@ -30,16 +30,19 @@ async def read_transactions(
         if transaction_type:
             query = query.eq("type", transaction_type)
         
-        response = query.order("date", desc=True).execute()
+        response = query.execute()
         
-        return response.data
+        if not response.data:
+            return []
+        
+        return [Transaction(**transaction) for transaction in response.data]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener transacciones: {str(e)}"
         )
 
-@router.post("/transactions", response_model=Transaction)
+@router.post("/transactions/", response_model=Transaction)
 async def create_transaction(
     transaction_in: TransactionCreate,
     current_user: User = Depends(get_current_user)
@@ -50,21 +53,21 @@ async def create_transaction(
     supabase = get_supabase_client()
     
     try:
-        transaction_data = {
-            "id": str(uuid.uuid4()),
+        # Crear un objeto con todos los campos necesarios
+        transaction_data = transaction_in.dict()
+        transaction_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        transaction_db = {
+            **transaction_data,
+            "id": transaction_id,
             "user_id": current_user.id,
-            "amount": transaction_in.amount,
-            "type": transaction_in.type,
-            "category": transaction_in.category,
-            "description": transaction_in.description,
-            "date": transaction_in.date.isoformat(),
-            "payment_method": transaction_in.payment_method,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": now,
+            "updated_at": now,
             "is_deleted": False
         }
         
-        response = supabase.table("transactions").insert(transaction_data).execute()
+        response = supabase.table("transactions").insert(transaction_db).execute()
         
         if not response.data:
             raise HTTPException(
@@ -72,11 +75,11 @@ async def create_transaction(
                 detail="Error al crear la transacción"
             )
         
-        return response.data[0]
+        return Transaction(**response.data[0])
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear transacción: {str(e)}"
+            detail=f"Error al crear la transacción: {str(e)}"
         )
 
 @router.get("/transactions/{transaction_id}", response_model=Transaction)
@@ -85,7 +88,7 @@ async def read_transaction(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Obtiene una transacción específica
+    Obtiene una transacción específica por ID
     """
     supabase = get_supabase_client()
     
@@ -103,11 +106,13 @@ async def read_transaction(
                 detail="Transacción no encontrada"
             )
         
-        return response.data[0]
+        return Transaction(**response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener transacción: {str(e)}"
+            detail=f"Error al obtener la transacción: {str(e)}"
         )
 
 @router.put("/transactions/{transaction_id}", response_model=Transaction)
@@ -117,44 +122,48 @@ async def update_transaction(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Actualiza una transacción
+    Actualiza una transacción específica
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que la transacción existe y pertenece al usuario
-        transaction_response = supabase.table("transactions") \
+        get_response = supabase.table("transactions") \
             .select("*") \
             .eq("id", transaction_id) \
             .eq("user_id", current_user.id) \
             .eq("is_deleted", False) \
             .execute()
         
-        if not transaction_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Transacción no encontrada"
             )
         
-        # Preparar datos para actualizar
-        update_data = {k: v for k, v in transaction_in.dict(exclude_unset=True).items()}
-        update_data["updated_at"] = datetime.now().isoformat()
-        
-        # Si hay una fecha, convertirla a ISO
-        if "date" in update_data and update_data["date"]:
-            update_data["date"] = update_data["date"].isoformat()
-        
         # Actualizar la transacción
-        response = supabase.table("transactions") \
-            .update(update_data) \
+        transaction_data = transaction_in.dict(exclude_unset=True)
+        transaction_data["updated_at"] = datetime.utcnow().isoformat()
+        
+        update_response = supabase.table("transactions") \
+            .update(transaction_data) \
             .eq("id", transaction_id) \
+            .eq("user_id", current_user.id) \
             .execute()
         
-        return response.data[0]
+        if not update_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al actualizar la transacción"
+            )
+        
+        return Transaction(**update_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar transacción: {str(e)}"
+            detail=f"Error al actualizar la transacción: {str(e)}"
         )
 
 @router.delete("/transactions/{transaction_id}", response_model=Transaction)
@@ -163,43 +172,54 @@ async def delete_transaction(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Elimina una transacción (marcándola como eliminada)
+    Elimina (soft delete) una transacción específica
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que la transacción existe y pertenece al usuario
-        transaction_response = supabase.table("transactions") \
+        get_response = supabase.table("transactions") \
             .select("*") \
             .eq("id", transaction_id) \
             .eq("user_id", current_user.id) \
             .eq("is_deleted", False) \
             .execute()
         
-        if not transaction_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Transacción no encontrada"
             )
         
-        # Marcar como eliminada
-        response = supabase.table("transactions") \
-            .update({
-                "is_deleted": True,
-                "updated_at": datetime.now().isoformat()
-            }) \
+        # Realizar soft delete de la transacción
+        delete_data = {
+            "is_deleted": True,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        delete_response = supabase.table("transactions") \
+            .update(delete_data) \
             .eq("id", transaction_id) \
+            .eq("user_id", current_user.id) \
             .execute()
         
-        return response.data[0]
+        if not delete_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al eliminar la transacción"
+            )
+        
+        return Transaction(**delete_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar transacción: {str(e)}"
+            detail=f"Error al eliminar la transacción: {str(e)}"
         )
 
 # Endpoints para metas financieras
-@router.get("/goals", response_model=List[FinancialGoal])
+@router.get("/goals/", response_model=List[FinancialGoal])
 async def read_financial_goals(
     current_user: User = Depends(get_current_user)
 ) -> Any:
@@ -209,20 +229,23 @@ async def read_financial_goals(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("financial_goals") \
+        response = supabase.table("finance_goals") \
             .select("*") \
             .eq("user_id", current_user.id) \
             .eq("is_deleted", False) \
             .execute()
         
-        return response.data
+        if not response.data:
+            return []
+        
+        return [FinancialGoal(**goal) for goal in response.data]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al obtener metas financieras: {str(e)}"
         )
 
-@router.post("/goals", response_model=FinancialGoal)
+@router.post("/goals/", response_model=FinancialGoal)
 async def create_financial_goal(
     goal_in: FinancialGoalCreate,
     current_user: User = Depends(get_current_user)
@@ -233,20 +256,22 @@ async def create_financial_goal(
     supabase = get_supabase_client()
     
     try:
-        goal_data = {
-            "id": str(uuid.uuid4()),
+        # Crear un objeto con todos los campos necesarios
+        goal_data = goal_in.dict()
+        goal_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        
+        goal_db = {
+            **goal_data,
+            "id": goal_id,
             "user_id": current_user.id,
-            "title": goal_in.title,
-            "target_amount": goal_in.target_amount,
-            "current_amount": goal_in.current_amount,
-            "deadline": goal_in.deadline.isoformat() if goal_in.deadline else None,
-            "category": goal_in.category,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "is_deleted": False
+            "created_at": now,
+            "updated_at": now,
+            "is_deleted": False,
+            "current_amount": goal_data.get("current_amount", 0)
         }
         
-        response = supabase.table("financial_goals").insert(goal_data).execute()
+        response = supabase.table("finance_goals").insert(goal_db).execute()
         
         if not response.data:
             raise HTTPException(
@@ -254,11 +279,11 @@ async def create_financial_goal(
                 detail="Error al crear la meta financiera"
             )
         
-        return response.data[0]
+        return FinancialGoal(**response.data[0])
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear meta financiera: {str(e)}"
+            detail=f"Error al crear la meta financiera: {str(e)}"
         )
 
 @router.put("/goals/{goal_id}", response_model=FinancialGoal)
@@ -268,44 +293,48 @@ async def update_financial_goal(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Actualiza una meta financiera
+    Actualiza una meta financiera específica
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que la meta existe y pertenece al usuario
-        goal_response = supabase.table("financial_goals") \
+        get_response = supabase.table("finance_goals") \
             .select("*") \
             .eq("id", goal_id) \
             .eq("user_id", current_user.id) \
             .eq("is_deleted", False) \
             .execute()
         
-        if not goal_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Meta financiera no encontrada"
             )
         
-        # Preparar datos para actualizar
-        update_data = {k: v for k, v in goal_in.dict(exclude_unset=True).items()}
-        update_data["updated_at"] = datetime.now().isoformat()
-        
-        # Si hay una fecha límite, convertirla a ISO
-        if "deadline" in update_data and update_data["deadline"]:
-            update_data["deadline"] = update_data["deadline"].isoformat()
-        
         # Actualizar la meta
-        response = supabase.table("financial_goals") \
-            .update(update_data) \
+        goal_data = goal_in.dict(exclude_unset=True)
+        goal_data["updated_at"] = datetime.utcnow().isoformat()
+        
+        update_response = supabase.table("finance_goals") \
+            .update(goal_data) \
             .eq("id", goal_id) \
+            .eq("user_id", current_user.id) \
             .execute()
         
-        return response.data[0]
+        if not update_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al actualizar la meta financiera"
+            )
+        
+        return FinancialGoal(**update_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar meta financiera: {str(e)}"
+            detail=f"Error al actualizar la meta financiera: {str(e)}"
         )
 
 @router.delete("/goals/{goal_id}", response_model=FinancialGoal)
@@ -314,37 +343,48 @@ async def delete_financial_goal(
     current_user: User = Depends(get_current_user)
 ) -> Any:
     """
-    Elimina una meta financiera (marcándola como eliminada)
+    Elimina (soft delete) una meta financiera específica
     """
     supabase = get_supabase_client()
     
     try:
         # Verificar que la meta existe y pertenece al usuario
-        goal_response = supabase.table("financial_goals") \
+        get_response = supabase.table("finance_goals") \
             .select("*") \
             .eq("id", goal_id) \
             .eq("user_id", current_user.id) \
             .eq("is_deleted", False) \
             .execute()
         
-        if not goal_response.data:
+        if not get_response.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Meta financiera no encontrada"
             )
         
-        # Marcar como eliminada
-        response = supabase.table("financial_goals") \
-            .update({
-                "is_deleted": True,
-                "updated_at": datetime.now().isoformat()
-            }) \
+        # Realizar soft delete de la meta
+        delete_data = {
+            "is_deleted": True,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        delete_response = supabase.table("finance_goals") \
+            .update(delete_data) \
             .eq("id", goal_id) \
+            .eq("user_id", current_user.id) \
             .execute()
         
-        return response.data[0]
+        if not delete_response.data:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al eliminar la meta financiera"
+            )
+        
+        return FinancialGoal(**delete_response.data[0])
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al eliminar meta financiera: {str(e)}"
+            detail=f"Error al eliminar la meta financiera: {str(e)}"
         )

@@ -1,64 +1,72 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from typing import List, Optional, Union
+from datetime import date, datetime
 from enum import Enum
 
 class TransactionType(str, Enum):
     income = "income"
     expense = "expense"
 
-class TransactionBase(BaseModel):
-    amount: float = Field(..., gt=0)
+class TransactionCreate(BaseModel):
+    amount: float
     type: TransactionType
     category: str
     description: Optional[str] = None
-    date: datetime
+    date: Union[date, str] = None
     payment_method: Optional[str] = None
-
-class TransactionCreate(TransactionBase):
-    user_id: str
 
 class TransactionUpdate(BaseModel):
     amount: Optional[float] = None
     type: Optional[TransactionType] = None
     category: Optional[str] = None
     description: Optional[str] = None
-    date: Optional[datetime] = None
+    date: Optional[Union[date, str]] = None
     payment_method: Optional[str] = None
 
-class TransactionInDB(TransactionBase):
+class Transaction(BaseModel):
     id: str
     user_id: str
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    amount: float
+    type: TransactionType
+    category: str
+    description: Optional[str] = None
+    date: Union[date, str]
+    payment_method: Optional[str] = None
+    created_at: Union[datetime, str]
+    updated_at: Union[datetime, str]
     is_deleted: bool = False
 
-class Transaction(TransactionInDB):
-    pass
+    class Config:
+        orm_mode = True
 
-class FinancialGoalBase(BaseModel):
+class FinancialGoalCreate(BaseModel):
     title: str
-    target_amount: float = Field(..., gt=0)
-    current_amount: float = Field(0, ge=0)
-    deadline: Optional[datetime] = None
-    category: str
-
-class FinancialGoalCreate(FinancialGoalBase):
-    user_id: str
+    target_amount: float
+    current_amount: Optional[float] = 0
+    deadline: Optional[Union[date, str]] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
 
 class FinancialGoalUpdate(BaseModel):
     title: Optional[str] = None
     target_amount: Optional[float] = None
     current_amount: Optional[float] = None
-    deadline: Optional[datetime] = None
+    deadline: Optional[Union[date, str]] = None
     category: Optional[str] = None
+    description: Optional[str] = None
 
-class FinancialGoalInDB(FinancialGoalBase):
+class FinancialGoal(BaseModel):
     id: str
     user_id: str
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    title: str
+    target_amount: float
+    current_amount: float = 0
+    deadline: Optional[Union[date, str]] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    created_at: Union[datetime, str]
+    updated_at: Union[datetime, str]
     is_deleted: bool = False
 
-class FinancialGoal(FinancialGoalInDB):
-    pass 
+    class Config:
+        orm_mode = True 
