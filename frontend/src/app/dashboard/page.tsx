@@ -10,10 +10,15 @@ import {
   Dumbbell, 
   TrendingUp, 
   Clock, 
-  Target 
+  Target,
+  PieChart,
+  Receipt,
+  Home,
+  Calculator
 } from 'lucide-react';
 import { GoalsSummary } from '@/components/goals/GoalsSummary';
 import { Goal } from '@/components/goals/GoalsDashboard';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   // Datos de ejemplo para el dashboard
@@ -305,6 +310,28 @@ export default function DashboardPage() {
                 ))}
               </div>
             </Card>
+          </div>
+        </div>
+
+        <div className="p-4 bg-card rounded-lg shadow-sm">
+          <h3 className="font-semibold text-lg mb-3">Gestión Financiera</h3>
+          <div className="flex flex-col space-y-2">
+            <Link href="/dashboard/finance" className="flex items-center text-muted-foreground hover:text-primary">
+              <PieChart className="h-4 w-4 mr-2" />
+              <span>Dashboard Financiero</span>
+            </Link>
+            <Link href="/dashboard/finance?tab=transactions" className="flex items-center text-muted-foreground hover:text-primary">
+              <Receipt className="h-4 w-4 mr-2" />
+              <span>Transacciones</span>
+            </Link>
+            <Link href="/dashboard/finance?tab=assets" className="flex items-center text-muted-foreground hover:text-primary">
+              <Home className="h-4 w-4 mr-2" />
+              <span>Planificador de Activos</span>
+            </Link>
+            <Link href="/dashboard/finance?tab=calculator" className="flex items-center text-muted-foreground hover:text-primary">
+              <Calculator className="h-4 w-4 mr-2" />
+              <span>Calculadora de Ahorro</span>
+            </Link>
           </div>
         </div>
       </div>
