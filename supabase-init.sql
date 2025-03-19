@@ -69,6 +69,31 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Crear tabla de analítica para almacenar métricas personales
+CREATE TABLE IF NOT EXISTS analytics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  metric_type TEXT NOT NULL,
+  period TEXT NOT NULL,
+  start_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  end_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  data JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Crear tabla para almacenar insights generados por IA
+CREATE TABLE IF NOT EXISTS ai_insights (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  insight_type TEXT NOT NULL,
+  description TEXT NOT NULL,
+  data JSONB,
+  relevance INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  related_metrics JSONB
+);
+
 -- Crear políticas de seguridad (RLS)
 
 -- Políticas para perfiles
@@ -175,4 +200,34 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Trigger para crear perfil automáticamente cuando se crea un usuario
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user(); 
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Configurar políticas de seguridad para las tablas de analítica
+ALTER TABLE analytics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Los usuarios pueden ver sus propias métricas" ON analytics
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden crear sus propias métricas" ON analytics
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden actualizar sus propias métricas" ON analytics
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden eliminar sus propias métricas" ON analytics
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Configurar políticas de seguridad para la tabla de insights
+ALTER TABLE ai_insights ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Los usuarios pueden ver sus propios insights" ON ai_insights
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden crear sus propios insights" ON ai_insights
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden actualizar sus propios insights" ON ai_insights
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Los usuarios pueden eliminar sus propios insights" ON ai_insights
+  FOR DELETE USING (auth.uid() = user_id); 
