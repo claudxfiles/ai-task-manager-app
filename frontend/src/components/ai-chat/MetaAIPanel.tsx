@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle2, Clock, Target, ArrowRight, Calendar, CheckSquare, PlusCircle } from 'lucide-react';
 import { Goal } from '@/types/goal';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface MetaAIPanelProps {
   goal: Partial<Goal>;
@@ -50,15 +52,12 @@ export function MetaAIPanel({ goal, onClose, onCreateTask }: MetaAIPanelProps) {
   };
   
   // Formatear fechas para mostrar
-  const formatDate = (date: Date | string | undefined) => {
-    if (!date) return 'No definida';
-    
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+  const formatDate = (dateObj: Date | string) => {
+    if (!dateObj) return '';
+    if (typeof dateObj === 'string') {
+      return format(new Date(dateObj), 'dd/MM/yyyy', { locale: es });
+    }
+    return format(dateObj, 'dd/MM/yyyy', { locale: es });
   };
   
   // Calcular el progreso basado en pasos completados

@@ -1,3 +1,6 @@
+// Importar parches para compatibilidad de módulos Node.js
+import '@/patches';
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";

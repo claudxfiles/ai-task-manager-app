@@ -57,6 +57,22 @@ export function useAuth() {
     }
   };
 
+  // Iniciar sesión con Google
+  const signInWithGoogle = async (redirectTo?: string) => {
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
+          scopes: 'email profile https://www.googleapis.com/auth/calendar', // Solicitar acceso a Calendar
+        },
+      });
+      return { data, error };
+    } catch (error: any) {
+      return { data: null, error };
+    }
+  };
+
   // Registrarse con correo y contraseña
   const signUpWithEmail = async (email: string, password: string, fullName: string) => {
     try {
@@ -122,14 +138,43 @@ export function useAuth() {
     }
   };
 
+  // Verificar si el usuario tiene permisos de Google Calendar
+  const hasGoogleCalendarScopes = () => {
+    const googleToken = user?.user_metadata?.google_token;
+    return !!googleToken?.access_token;
+  };
+
+  // Solicitar permisos de Google Calendar
+  const requestGoogleCalendarPermission = async () => {
+    try {
+      const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: 'https://www.googleapis.com/auth/calendar',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      return { data, error };
+    } catch (error: any) {
+      return { data: null, error };
+    }
+  };
+
   return {
     user,
     session,
     loading,
     signInWithEmail,
+    signInWithGoogle,
     signUpWithEmail,
     signOut,
     resetPassword,
     updatePassword,
+    hasGoogleCalendarScopes,
+    requestGoogleCalendarPermission,
   };
 } 

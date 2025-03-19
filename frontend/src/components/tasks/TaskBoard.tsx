@@ -1,10 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Plus, MoreVertical, Clock, Tag, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import dynamic from 'next/dynamic';
+
+// Importar dinámicamente los componentes relacionados con Google Calendar
+const AddTaskToCalendarButton = dynamic(
+  () => import('@/components/calendar/AddTaskToCalendarButton').then(mod => mod.AddTaskToCalendarButton),
+  { ssr: false }
+);
+
+const CalendarStatusWrapper = dynamic(
+  () => import('@/components/tasks/CalendarStatusWrapper').then(mod => mod.CalendarStatusWrapper),
+  { ssr: false }
+);
 
 // Tipos para las tareas
 interface Task {
@@ -84,6 +96,27 @@ const TaskCard = ({ task }: { task: Task }) => {
           {getPriorityText(task.priority)}
         </span>
       </div>
+      
+      {task.dueDate && (
+        <Suspense fallback={null}>
+          <CalendarStatusWrapper>
+            {(isConnected) => isConnected && (
+              <div className="mt-3 flex justify-end">
+                <AddTaskToCalendarButton 
+                  task={{
+                    id: task.id,
+                    title: task.title,
+                    description: task.description,
+                    due_date: task.dueDate,
+                    status: task.status,
+                    priority: task.priority
+                  }} 
+                />
+              </div>
+            )}
+          </CalendarStatusWrapper>
+        </Suspense>
+      )}
     </Card>
   );
 };

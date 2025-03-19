@@ -19,6 +19,8 @@ import {
 import { GoalsSummary } from '@/components/goals/GoalsSummary';
 import { Goal } from '@/components/goals/GoalsDashboard';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function DashboardPage() {
   // Datos de ejemplo para el dashboard
@@ -192,7 +194,7 @@ export default function DashboardPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">{task.title}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Vence: {new Date(task.dueDate).toLocaleDateString()}
+                        Vence: {format(new Date(task.dueDate), 'dd/MM/yyyy', { locale: es })}
                       </p>
                     </div>
                     <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">

@@ -7,6 +7,8 @@ import { Goal } from '@/types/goal';
 import { Badge } from '../ui/badge';
 import { CalendarIcon, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { MetaAIPanel } from './MetaAIPanel';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export interface GoalChatIntegrationProps {
   message: string;
@@ -64,6 +66,12 @@ export function GoalChatIntegration({ message, metadata, onCreateGoal, onCreateT
     }
   };
 
+  const formatDate = (date: Date | string) => {
+    if (!date) return '';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return format(dateObj, 'dd/MM/yyyy', { locale: es });
+  };
+
   // Si se está mostrando el panel completo, no mostrar la tarjeta de detección
   if (showMetaPanel && goalData) {
     return (
@@ -108,12 +116,15 @@ export function GoalChatIntegration({ message, metadata, onCreateGoal, onCreateT
             {goalData?.timeframe && (
               <Badge variant="outline" className="bg-accent/10 flex items-center gap-1">
                 <CalendarIcon className="h-3 w-3" />
-                {goalData.timeframe.startDate instanceof Date 
-                  ? goalData.timeframe.startDate.toLocaleDateString() 
-                  : new Date(goalData.timeframe.startDate).toLocaleDateString()} - 
-                {goalData.timeframe.endDate instanceof Date 
-                  ? goalData.timeframe.endDate.toLocaleDateString() 
-                  : new Date(goalData.timeframe.endDate).toLocaleDateString()}
+                {goalData.timeframe ? 
+                  (typeof goalData.timeframe.startDate === 'object' 
+                    ? formatDate(goalData.timeframe.startDate)
+                    : formatDate(goalData.timeframe.startDate)) + ' - ' +
+                  (typeof goalData.timeframe.endDate === 'object'
+                    ? formatDate(goalData.timeframe.endDate)
+                    : formatDate(goalData.timeframe.endDate))
+                  : ''
+                }
               </Badge>
             )}
           </div>

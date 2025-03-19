@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { User, Mail, Phone, MapPin, Calendar, Save } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface Profile {
   id: string;
@@ -227,7 +229,7 @@ export default function UserProfile() {
                 Miembro desde
               </label>
               <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}
+                {profile?.created_at ? format(new Date(profile.created_at), 'dd/MM/yyyy', { locale: es }) : 'N/A'}
               </div>
             </div>
           </div>
