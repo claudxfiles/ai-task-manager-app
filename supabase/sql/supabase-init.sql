@@ -129,9 +129,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 
 -- Agregar la restricción parcial correctamente
-ALTER TABLE subscriptions 
-ADD CONSTRAINT unique_active_subscription 
-UNIQUE (user_id, status) 
+DROP INDEX IF EXISTS unique_active_subscription;
+CREATE UNIQUE INDEX unique_active_subscription ON subscriptions (user_id)
 WHERE status IN ('active', 'trial');
 
 -- Crear tabla de historial de pagos

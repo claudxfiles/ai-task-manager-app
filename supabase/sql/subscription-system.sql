@@ -33,11 +33,12 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   current_period_end TIMESTAMP WITH TIME ZONE,
   cancel_at_period_end BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  
-  -- Restricción única para evitar duplicados de suscripciones activas
-  UNIQUE (user_id, status) WHERE (status = 'active' OR status = 'trial')
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Crear un índice único parcial para evitar duplicados de suscripciones activas
+CREATE UNIQUE INDEX idx_unique_active_subscription ON subscriptions(user_id) 
+WHERE (status = 'active' OR status = 'trial');
 
 -- Crear tabla de historial de pagos
 CREATE TABLE IF NOT EXISTS payment_history (
@@ -63,14 +64,17 @@ CREATE INDEX IF NOT EXISTS idx_payment_history_subscription_id ON payment_histor
 ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad para subscriptions
+DROP POLICY IF EXISTS "Los usuarios pueden ver sus propias suscripciones" ON subscriptions;
 CREATE POLICY "Los usuarios pueden ver sus propias suscripciones" 
   ON subscriptions FOR SELECT 
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Solo administradores pueden crear suscripciones" ON subscriptions;
 CREATE POLICY "Solo administradores pueden crear suscripciones" 
   ON subscriptions FOR INSERT 
   WITH CHECK (auth.uid() = user_id OR auth.jwt()->>'role' = 'admin');
 
+DROP POLICY IF EXISTS "Solo administradores pueden actualizar suscripciones" ON subscriptions;
 CREATE POLICY "Solo administradores pueden actualizar suscripciones" 
   ON subscriptions FOR UPDATE 
   USING (auth.uid() = user_id OR auth.jwt()->>'role' = 'admin');
@@ -79,10 +83,12 @@ CREATE POLICY "Solo administradores pueden actualizar suscripciones"
 ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad para subscription_plans
+DROP POLICY IF EXISTS "Cualquier usuario puede ver planes de suscripción" ON subscription_plans;
 CREATE POLICY "Cualquier usuario puede ver planes de suscripción" 
   ON subscription_plans FOR SELECT 
   USING (true);
 
+DROP POLICY IF EXISTS "Solo administradores pueden gestionar planes de suscripción" ON subscription_plans;
 CREATE POLICY "Solo administradores pueden gestionar planes de suscripción" 
   ON subscription_plans FOR ALL 
   USING (auth.jwt()->>'role' = 'admin');
@@ -91,10 +97,12 @@ CREATE POLICY "Solo administradores pueden gestionar planes de suscripción"
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de seguridad para payment_history
+DROP POLICY IF EXISTS "Los usuarios pueden ver su propio historial de pagos" ON payment_history;
 CREATE POLICY "Los usuarios pueden ver su propio historial de pagos" 
   ON payment_history FOR SELECT 
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Solo administradores pueden crear registros de pago" ON payment_history;
 CREATE POLICY "Solo administradores pueden crear registros de pago" 
   ON payment_history FOR INSERT 
   WITH CHECK (auth.uid() = user_id OR auth.jwt()->>'role' = 'admin');

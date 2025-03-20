@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 import logging
 import os
 from dotenv import load_dotenv
-from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions, finance, habits
+from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions, finance, habits, calendar
 from app.api.router import api_router
 from app.core.config import settings
 
@@ -95,6 +95,12 @@ app.include_router(
     habits.router,
     prefix="/api/habits",
     tags=["habits"],
+)
+
+app.include_router(
+    calendar.router,
+    prefix="/api/calendar",
+    tags=["calendar"],
 )
 
 # Servir archivos estáticos si existe la carpeta

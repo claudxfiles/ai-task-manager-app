@@ -3,13 +3,13 @@ from typing import List, Dict, Any
 from uuid import uuid4
 
 from app.api.deps import get_current_user
-from app.schemas.ai import ChatMessage, ChatResponse
+from app.schemas.ai import MessageRole, ChatMessage as AIChatMessage, ChatResponse as AIChatResponse
 
 router = APIRouter()
 
-@router.post("/chat", response_model=ChatResponse)
+@router.post("/chat", response_model=AIChatResponse)
 async def chat_with_ai(
-    message: ChatMessage,
+    message: AIChatMessage,
     current_user=Depends(get_current_user)
 ):
     """
@@ -19,12 +19,9 @@ async def chat_with_ai(
         # Aquí iría la lógica para comunicarse con el modelo de IA
         # Por ahora, devolvemos una respuesta simulada
         return {
-            "id": str(uuid4()),
-            "content": f"Respuesta simulada a: {message.content}",
-            "user_id": current_user["id"],
-            "created_at": "2023-01-01T00:00:00Z",
-            "model": "gpt-3.5-turbo-simulated",
-            "conversation_id": message.conversation_id or str(uuid4())
+            "message": f"Respuesta simulada a: {message.content}",
+            "has_goal": False,
+            "goal_metadata": None
         }
     except Exception as e:
         raise HTTPException(
