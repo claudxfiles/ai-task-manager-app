@@ -40,16 +40,37 @@ export enum WorkoutType {
   CUSTOM = 'custom'
 }
 
+// Grupos musculares basados en las imágenes disponibles
 export enum MuscleGroup {
+  ABS = 'abs',
+  BICEPS = 'biceps',
+  CALVES = 'calves',
   CHEST = 'chest',
+  FOREARMS = 'forearms',
+  GLUTES = 'glutes',
+  HAMSTRING = 'hamstring',
+  OBLIQUES = 'obliques',
+  QUADRICEPS = 'quadriceps',
+  SHOULDER = 'shoulder',
+  TRICEPS = 'triceps',
   BACK = 'back',
-  SHOULDERS = 'shoulders',
-  ARMS = 'arms',
-  LEGS = 'legs',
-  CORE = 'core',
   FULL_BODY = 'full_body',
   CARDIO = 'cardio'
 }
+
+export const muscleGroupImages: Record<string, string> = {
+  [MuscleGroup.ABS]: '/image-workout/abs.png',
+  [MuscleGroup.BICEPS]: '/image-workout/Biceps.png',
+  [MuscleGroup.CALVES]: '/image-workout/Calves.png',
+  [MuscleGroup.CHEST]: '/image-workout/Chest.png',
+  [MuscleGroup.FOREARMS]: '/image-workout/forearms.png',
+  [MuscleGroup.GLUTES]: '/image-workout/Glutes.png',
+  [MuscleGroup.HAMSTRING]: '/image-workout/Hamstring.png',
+  [MuscleGroup.OBLIQUES]: '/image-workout/Obliques.png',
+  [MuscleGroup.QUADRICEPS]: '/image-workout/Quadriceps.png',
+  [MuscleGroup.SHOULDER]: '/image-workout/Shoulder.png',
+  [MuscleGroup.TRICEPS]: '/image-workout/triceps.png'
+};
 
 export enum ExerciseType {
   STRENGTH = 'strength',
@@ -71,6 +92,7 @@ export interface WorkoutFilters {
   dateFrom?: Date;
   dateTo?: Date;
   workoutType?: WorkoutType;
+  muscleGroups?: MuscleGroup[];
   search?: string;
 }
 
@@ -88,6 +110,7 @@ export interface WorkoutStatistics {
   favoriteWorkoutType: string;
   workoutsByType: Record<string, number>;
   workoutsByMonth: Record<string, number>;
+  mostWorkedMuscleGroups: Record<string, number>;
   averageDuration: number;
   streakDays: number;
 }
@@ -99,6 +122,7 @@ export interface AIWorkoutRecommendation {
   workoutType: WorkoutType;
   difficultyLevel: DifficultyLevel;
   estimatedDuration: number;
+  muscleGroups: MuscleGroup[];
   exercises: {
     name: string;
     sets: number;

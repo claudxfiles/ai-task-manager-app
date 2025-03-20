@@ -402,6 +402,7 @@ export interface Database {
           workout_type: string | null;
           calories_burned: number | null;
           feeling_rating: number | null;
+          muscle_groups: string[] | null;
           created_at: string;
           updated_at: string;
         };
@@ -415,6 +416,7 @@ export interface Database {
           workout_type?: string | null;
           calories_burned?: number | null;
           feeling_rating?: number | null;
+          muscle_groups?: string[] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -428,6 +430,7 @@ export interface Database {
           workout_type?: string | null;
           calories_burned?: number | null;
           feeling_rating?: number | null;
+          muscle_groups?: string[] | null;
           created_at?: string;
           updated_at?: string;
         };

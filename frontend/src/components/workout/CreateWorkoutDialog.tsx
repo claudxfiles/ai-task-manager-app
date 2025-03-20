@@ -19,12 +19,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { createWorkout, getExerciseTemplates } from "@/lib/workout";
-import { WorkoutType, ExerciseTemplate } from "@/types/workout";
+import { WorkoutType, ExerciseTemplate, MuscleGroup } from "@/types/workout";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { CalendarIcon, PlusIcon, Trash2Icon, DumbbellIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
+import WorkoutMuscleSelector from "./WorkoutMuscleSelector";
 
 interface CreateWorkoutDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export default function CreateWorkoutDialog({
   const [workoutType, setWorkoutType] = useState<string>(WorkoutType.STRENGTH);
   const [duration, setDuration] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [muscleGroups, setMuscleGroups] = useState<string[]>([]);
   const [exercises, setExercises] = useState<Array<{
     name: string;
     sets: number;
@@ -75,6 +77,7 @@ export default function CreateWorkoutDialog({
     setWorkoutType(WorkoutType.STRENGTH);
     setDuration("");
     setNotes("");
+    setMuscleGroups([]);
     setExercises([]);
   };
 
@@ -104,6 +107,10 @@ export default function CreateWorkoutDialog({
       [field]: value,
     };
     setExercises(newExercises);
+  };
+
+  const handleMuscleGroupsChange = (selected: string[]) => {
+    setMuscleGroups(selected);
   };
 
   const handleSubmit = async () => {
@@ -151,6 +158,7 @@ export default function CreateWorkoutDialog({
         workout_type: workoutType,
         duration_minutes: duration ? parseInt(duration) : null,
         notes: notes || null,
+        muscle_groups: muscleGroups.length > 0 ? muscleGroups : null,
       };
 
       // En lugar de usar directamente el createWorkout, usaremos la implementación subyacente
@@ -288,6 +296,14 @@ export default function CreateWorkoutDialog({
                 onChange={(e) => setDuration(e.target.value)}
               />
             </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Grupos musculares trabajados</Label>
+            <WorkoutMuscleSelector
+              selected={muscleGroups}
+              onChange={handleMuscleGroupsChange}
+            />
           </div>
 
           <div className="space-y-2">

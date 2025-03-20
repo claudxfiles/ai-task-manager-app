@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ import {
   BookmarkIcon
 } from "lucide-react";
 import { getWorkoutWithExercises, deleteWorkout, updateWorkout } from "@/lib/workout";
-import { WorkoutWithExercises, WorkoutType, WorkoutExerciseInsert } from "@/types/workout";
+import { WorkoutWithExercises, WorkoutType, WorkoutExerciseInsert, muscleGroupImages, MuscleGroup } from "@/types/workout";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   AlertDialog,
@@ -59,9 +60,52 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlusIcon, MinusIcon } from "lucide-react";
+import WorkoutMuscleSelector from "./WorkoutMuscleSelector";
 
 interface WorkoutDetailProps {
   id: string;
+}
+
+function MuscleGroupsDisplay({ muscleGroups }: { muscleGroups: string[] }) {
+  if (!muscleGroups || muscleGroups.length === 0) {
+    return (
+      <div className="text-muted-foreground text-sm">
+        No hay grupos musculares registrados
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {muscleGroups.map((muscleId) => {
+        const imgSrc = muscleGroupImages[muscleId];
+        const name = Object.entries(MuscleGroup).find(
+          ([key, value]) => value === muscleId
+        )?.[0];
+        
+        return (
+          <div
+            key={muscleId}
+            className="flex flex-col items-center border rounded-lg p-3 bg-background"
+          >
+            <div className="relative w-12 h-12 mb-1">
+              {imgSrc && (
+                <Image
+                  src={imgSrc}
+                  alt={name || muscleId}
+                  fill
+                  objectFit="contain"
+                />
+              )}
+            </div>
+            <span className="text-xs font-medium text-center">
+              {name || muscleId}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function WorkoutDetail({ id }: WorkoutDetailProps) {
@@ -81,7 +125,8 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
     date: "",
     workout_type: "",
     duration_minutes: 0,
-    notes: ""
+    notes: "",
+    muscle_groups: [] as string[]
   });
   const [exercises, setExercises] = useState<WorkoutExerciseInsert[]>([]);
 
@@ -101,7 +146,8 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
             date: format(new Date(workoutData.date), 'yyyy-MM-dd'),
             workout_type: workoutData.workout_type || "",
             duration_minutes: workoutData.duration_minutes || 0,
-            notes: workoutData.notes || ""
+            notes: workoutData.notes || "",
+            muscle_groups: workoutData.muscle_groups || []
           });
           
           // Inicializar los ejercicios
@@ -182,21 +228,26 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
     setIsSubmitting(true);
     
     try {
+      const updatedWorkout = {
+        id: workout.id,
+        user_id: user.id,
+        name: editData.name,
+        date: editData.date,
+        workout_type: editData.workout_type,
+        duration_minutes: editData.duration_minutes,
+        notes: editData.notes,
+        muscle_groups: editData.muscle_groups.length ? editData.muscle_groups : null
+      };
+      
       await updateWorkout(
         id,
-        {
-          name: editData.name,
-          date: editData.date,
-          workout_type: editData.workout_type || null,
-          duration_minutes: editData.duration_minutes || null,
-          notes: editData.notes || null
-        },
+        updatedWorkout,
         exercises
       );
       
       // Recargar los datos del workout
-      const updatedWorkout = await getWorkoutWithExercises(id);
-      setWorkout(updatedWorkout);
+      const updatedWorkoutData = await getWorkoutWithExercises(id);
+      setWorkout(updatedWorkoutData);
       
       toast({
         title: "Entrenamiento actualizado",
@@ -296,6 +347,13 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
       default:
         return "bg-gray-500";
     }
+  };
+
+  const handleMuscleGroupsChange = (selected: string[]) => {
+    setEditData({
+      ...editData,
+      muscle_groups: selected
+    });
   };
 
   if (isLoading) {
@@ -498,6 +556,14 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
               </div>
             )}
           </div>
+
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <DumbbellIcon className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Grupos musculares trabajados</span>
+            </div>
+            <MuscleGroupsDisplay muscleGroups={workout.muscle_groups || []} />
+          </div>
         </CardContent>
       </Card>
 
@@ -607,6 +673,14 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
                 onChange={handleInputChange}
                 placeholder="Notas adicionales sobre el entrenamiento"
                 rows={3}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Grupos musculares trabajados</Label>
+              <WorkoutMuscleSelector
+                selected={editData.muscle_groups}
+                onChange={handleMuscleGroupsChange}
               />
             </div>
             
