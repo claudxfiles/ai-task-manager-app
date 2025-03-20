@@ -1,30 +1,233 @@
 // Servicio para interactuar con las APIs de calendario
 
-// Función para obtener eventos del calendario
-export async function getCalendarEvents(startDate: Date, endDate: Date, calendarId = 'primary') {
+import { supabase } from "./supabase";
+import { CalendarEvent, EventSource } from "@/types/calendar";
+import { parseISO, format, addHours, addMinutes, isSameDay } from "date-fns";
+import { es } from "date-fns/locale";
+
+// Tipos para la integración con Google Calendar
+type GoogleCalendarCredentials = {
+  access_token: string;
+  refresh_token: string;
+  expiry_date: number;
+};
+
+type CalendarEventInput = {
+  title: string;
+  description: string;
+  startDateTime: string;
+  endDateTime: string;
+  goalId?: string;
+  taskId?: string;
+  habitId?: string;
+  workoutId?: string;
+};
+
+// Función para verificar y obtener credenciales de Google Calendar
+export async function getCalendarCredentials(userId: string): Promise<GoogleCalendarCredentials | null> {
   try {
-    console.log(`Solicitando eventos del calendario desde ${startDate.toISOString()} hasta ${endDate.toISOString()}`);
-    
-    const response = await fetch(`/api/v1/calendar?timeMin=${startDate.toISOString()}&timeMax=${endDate.toISOString()}&calendarId=${calendarId}`);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Error de servidor' }));
-      console.error('Error de respuesta al obtener eventos:', errorData);
-      
-      // Mensajes de error más específicos
-      if (response.status === 401) {
-        console.error('Error de autenticación (401):', errorData);
-        throw new Error(errorData.error || 'Usuario no conectado a Google Calendar');
-      }
-      
-      throw new Error(errorData.error || 'Error al obtener eventos del calendario');
+    const { data, error } = await supabase
+      .from('user_integrations')
+      .select('credentials')
+      .eq('user_id', userId)
+      .eq('provider', 'google_calendar')
+      .single();
+
+    if (error || !data) {
+      console.error('Error fetching calendar credentials:', error);
+      return null;
     }
-    
-    const data = await response.json();
-    console.log(`Eventos obtenidos correctamente: ${data.length} eventos`);
-    return data;
+
+    return data.credentials as GoogleCalendarCredentials;
   } catch (error) {
-    console.error('Error al obtener eventos del calendario:', error);
+    console.error('Error in getCalendarCredentials:', error);
+    return null;
+  }
+}
+
+// Función para refrescar el token de acceso si es necesario
+export async function refreshTokenIfNeeded(userId: string, credentials: GoogleCalendarCredentials): Promise<GoogleCalendarCredentials> {
+  // Si el token expira en menos de 5 minutos, refrescarlo
+  if (credentials.expiry_date < Date.now() + 5 * 60 * 1000) {
+    try {
+      const { data, error } = await supabase.functions.invoke('refresh-google-token', {
+        body: { refresh_token: credentials.refresh_token }
+      });
+
+      if (error || !data) {
+        throw new Error(`Error refreshing token: ${error?.message || 'Unknown error'}`);
+      }
+
+      // Actualizar las credenciales en la base de datos
+      const { error: updateError } = await supabase
+        .from('user_integrations')
+        .update({
+          credentials: {
+            access_token: data.access_token,
+            refresh_token: credentials.refresh_token, // Mantener el refresh token actual
+            expiry_date: Date.now() + (data.expires_in * 1000)
+          }
+        })
+        .eq('user_id', userId)
+        .eq('provider', 'google_calendar');
+
+      if (updateError) {
+        console.error('Error updating credentials:', updateError);
+      }
+
+      return {
+        access_token: data.access_token,
+        refresh_token: credentials.refresh_token,
+        expiry_date: Date.now() + (data.expires_in * 1000)
+      };
+    } catch (error) {
+      console.error('Error in refreshTokenIfNeeded:', error);
+      throw error;
+    }
+  }
+
+  return credentials;
+}
+
+// Función para obtener eventos del calendario
+export async function getCalendarEvents(userId: string, startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
+  try {
+    // Obtener credenciales de Google Calendar
+    const credentials = await getCalendarCredentials(userId);
+    if (!credentials) {
+      return []; // Si no hay credenciales, devolver array vacío
+    }
+
+    // Refrescar token si es necesario
+    const refreshedCredentials = await refreshTokenIfNeeded(userId, credentials);
+
+    // Formatear fechas para la API
+    const timeMin = startDate.toISOString();
+    const timeMax = endDate.toISOString();
+
+    // Llamar a la API de Google Calendar
+    const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`, {
+      headers: {
+        'Authorization': `Bearer ${refreshedCredentials.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error fetching calendar events:', errorData);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    // Transformar eventos de Google Calendar a nuestro formato
+    return data.items.map((item: any) => ({
+      id: item.id,
+      title: item.summary,
+      start: item.start.dateTime || item.start.date,
+      end: item.end.dateTime || item.end.date,
+      allDay: !item.start.dateTime,
+      description: item.description || '',
+      source: 'google' as EventSource,
+      color: '#4285F4', // Color de Google
+      sourceId: item.id
+    }));
+  } catch (error) {
+    console.error('Error in getCalendarEvents:', error);
+    return [];
+  }
+}
+
+// Función para crear un evento en Google Calendar
+export async function createGoogleCalendarEvent(
+  userId: string, 
+  eventData: CalendarEventInput
+): Promise<string | null> {
+  try {
+    // Obtener credenciales de Google Calendar
+    const credentials = await getCalendarCredentials(userId);
+    if (!credentials) {
+      throw new Error('No se encontraron credenciales de Google Calendar');
+    }
+
+    // Refrescar token si es necesario
+    const refreshedCredentials = await refreshTokenIfNeeded(userId, credentials);
+
+    // Preparar datos del evento para Google Calendar
+    const googleEvent = {
+      summary: eventData.title,
+      description: eventData.description,
+      start: {
+        dateTime: eventData.startDateTime,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      },
+      end: {
+        dateTime: eventData.endDateTime,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }
+    };
+
+    // Llamar a la API de Google Calendar para crear el evento
+    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${refreshedCredentials.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(googleEvent)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error creating Google Calendar event:', errorData);
+      throw new Error('Error al crear evento en Google Calendar');
+    }
+
+    const data = await response.json();
+    
+    // Guardar la relación del evento en nuestra base de datos
+    const eventRelation = {
+      user_id: userId,
+      google_event_id: data.id,
+      goal_id: eventData.goalId || null,
+      task_id: eventData.taskId || null,
+      habit_id: eventData.habitId || null,
+      workout_id: eventData.workoutId || null,
+      event_title: eventData.title,
+      start_time: eventData.startDateTime,
+      end_time: eventData.endDateTime
+    };
+
+    const { error } = await supabase
+      .from('calendar_event_relations')
+      .insert(eventRelation);
+
+    if (error) {
+      console.error('Error saving calendar event relation:', error);
+    }
+
+    return data.id;
+  } catch (error) {
+    console.error('Error in createGoogleCalendarEvent:', error);
+    throw error;
+  }
+}
+
+// Función para añadir un workout al calendario
+export async function addWorkoutToCalendar(eventData: CalendarEventInput): Promise<string | null> {
+  // Obtener el ID de usuario actual
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuario no autenticado');
+  }
+
+  try {
+    // Crear el evento en Google Calendar
+    const eventId = await createGoogleCalendarEvent(user.id, eventData);
+    return eventId;
+  } catch (error) {
+    console.error('Error al añadir workout al calendario:', error);
     throw error;
   }
 }

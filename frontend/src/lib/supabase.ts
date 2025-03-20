@@ -9,27 +9,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Crear el cliente de Supabase
+// Cliente para el lado del servidor
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Implementación de singleton para el cliente del componente
-let clientComponentInstance: ReturnType<typeof createClientComponentClient> | null = null;
-
-// Cliente para componentes del lado del cliente
+// Cliente para componentes del lado del cliente (con manejo de sesión)
 export const createClientComponent = () => {
-  if (typeof window === 'undefined') {
-    // Siempre crear una nueva instancia en el servidor
-    return createClientComponentClient();
-  }
-  
-  // En el cliente, reutilizar la instancia existente o crear una nueva
-  if (!clientComponentInstance) {
-    clientComponentInstance = createClientComponentClient();
-    console.log('Creando nueva instancia de GoTrueClient');
-  }
-  
-  return clientComponentInstance;
+  return createClientComponentClient();
 };
+
+// Exportar una instancia del cliente para componentes
+export const supabaseClient = createClientComponentClient();
 
 // Tipos para las tablas de Supabase
 export type Tables = {

@@ -63,7 +63,7 @@ if os.environ.get("ENV", "development") == "development":
 # Incluir routers
 app.include_router(
     api_router,
-    prefix="/api",
+    prefix="/api/v1",
 )
 
 app.include_router(

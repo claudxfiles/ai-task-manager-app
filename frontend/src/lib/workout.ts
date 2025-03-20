@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Database } from '@/types/supabase';
 import { 
   Workout, 
@@ -17,10 +17,8 @@ import {
 } from '@/types/workout';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
-// Inicializar cliente Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+// Inicializar cliente Supabase para componentes
+const supabase = createClientComponentClient<Database>();
 
 // Función para obtener todos los workouts de un usuario
 export async function getUserWorkouts(

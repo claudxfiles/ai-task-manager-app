@@ -131,4 +131,42 @@ export interface AIWorkoutRecommendation {
     notes?: string;
   }[];
   notes?: string;
+}
+
+export interface WorkoutProgress {
+  id: string;
+  user_id: string;
+  exercise_name: string;
+  max_weight: number;
+  max_reps: number;
+  total_volume: number;
+  last_performed: string;
+  best_set: {
+    date: string;
+    weight: number;
+    reps: number;
+    volume: number;
+  };
+  progress_history: Array<{
+    date: string;
+    weight: number;
+    reps: number;
+    volume: number;
+  }>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  workout_id: string;
+  name: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  rest_seconds: number;
+  order_index: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 } 

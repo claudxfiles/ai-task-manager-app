@@ -5,15 +5,18 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarIcon, BarChart3Icon, DumbbellIcon, TimerIcon, PlusIcon } from "lucide-react";
+import { CalendarIcon, BarChart3Icon, DumbbellIcon, TimerIcon, PlusIcon, SparklesIcon, PlusCircleIcon, BookmarkIcon, LayoutTemplateIcon } from "lucide-react";
 import WorkoutList from "./WorkoutList";
 import WorkoutStatisticsView from "./WorkoutStatisticsView";
 import WorkoutProgressView from "./WorkoutProgressView";
 import CreateWorkoutDialog from "./CreateWorkoutDialog";
+import WorkoutCalendarIntegration from "./WorkoutCalendarIntegration";
+import AIWorkoutRecommendations from "./AIWorkoutRecommendations";
 import { useToast } from "@/components/ui/use-toast";
 import { getUserWorkouts, getWorkoutStatistics } from "@/lib/workout";
 import { WorkoutStatistics } from "@/types/workout";
 import { useAuth } from "@/hooks/useAuth";
+import WorkoutTemplateSelector from "./WorkoutTemplateSelector";
 
 export default function WorkoutDashboard() {
   const { user } = useAuth();
@@ -21,6 +24,7 @@ export default function WorkoutDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("workouts");
   const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
+  const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [stats, setStats] = useState<WorkoutStatistics | null>(null);
   const [refreshKey, setRefreshKey] = useState<number>(0);
@@ -51,69 +55,67 @@ export default function WorkoutDashboard() {
   }, [user?.id, refreshKey, toast]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Tabs defaultValue="workouts" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="workouts" className="flex gap-2 items-center">
-              <DumbbellIcon className="h-4 w-4" />
-              <span>Entrenamientos</span>
-            </TabsTrigger>
-            <TabsTrigger value="progress" className="flex gap-2 items-center">
-              <BarChart3Icon className="h-4 w-4" />
-              <span>Progreso</span>
-            </TabsTrigger>
-            <TabsTrigger value="statistics" className="flex gap-2 items-center">
-              <TimerIcon className="h-4 w-4" />
-              <span>Estadísticas</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="flex justify-end mb-4 mt-4">
+    <div className="space-y-8">
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center p-6 text-center">
+          <div className="rounded-full bg-primary/10 p-3 mb-4">
+            <DumbbellIcon className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-xl font-medium mb-2">Registra tus entrenamientos</h3>
+          <p className="text-muted-foreground mb-4 max-w-md">
+            Realiza un seguimiento de tus entrenamientos, mide tu progreso y
+            visualiza tus resultados a lo largo del tiempo.
+          </p>
+          <div className="flex flex-wrap gap-3 justify-center">
             <Button
+              className="gap-2"
               onClick={() => setShowCreateDialog(true)}
-              className="bg-primary"
             >
-              <PlusIcon className="h-4 w-4 mr-2" />
+              <PlusCircleIcon className="h-4 w-4" />
               Nuevo Entrenamiento
             </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowTemplateSelector(true)}
+            >
+              <LayoutTemplateIcon className="h-4 w-4" />
+              Seleccionar Rutina
+            </Button>
           </div>
+        </CardContent>
+      </Card>
 
-          <TabsContent value="workouts" className="space-y-4">
-            <WorkoutList onRefresh={handleRefresh} />
-          </TabsContent>
-
-          <TabsContent value="progress" className="space-y-4">
-            <WorkoutProgressView />
-          </TabsContent>
-
-          <TabsContent value="statistics" className="space-y-4">
-            {stats ? (
-              <WorkoutStatisticsView stats={stats} />
-            ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Estadísticas</CardTitle>
-                  <CardDescription>Cargando estadísticas de entrenamiento...</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[400px] flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <WorkoutList onRefresh={handleRefresh} key={`list-${refreshKey}`} />
+        <WorkoutStatisticsView stats={stats} isLoading={isLoading} />
       </div>
+
+      <Tabs defaultValue="progress">
+        <TabsList className="grid grid-cols-2 w-[400px] mb-4">
+          <TabsTrigger value="progress">Progreso</TabsTrigger>
+          <TabsTrigger value="calendar">Calendario</TabsTrigger>
+        </TabsList>
+        <TabsContent value="progress" className="space-y-4">
+          <WorkoutProgressView />
+        </TabsContent>
+        <TabsContent value="calendar" className="space-y-4">
+          <WorkoutCalendarIntegration />
+        </TabsContent>
+      </Tabs>
+
+      <AIWorkoutRecommendations onCreateWorkout={setShowCreateDialog} />
 
       <CreateWorkoutDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        onSuccess={() => {
-          handleRefresh();
-          router.push("/dashboard/workout");
-        }}
+        onSuccess={handleRefresh}
+      />
+      
+      <WorkoutTemplateSelector
+        open={showTemplateSelector}
+        onOpenChange={setShowTemplateSelector}
+        onSuccess={handleRefresh}
       />
     </div>
   );

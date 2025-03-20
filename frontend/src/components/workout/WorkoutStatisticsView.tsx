@@ -13,10 +13,39 @@ import {
 } from "lucide-react";
 
 interface WorkoutStatisticsViewProps {
-  stats: WorkoutStatistics;
+  stats: WorkoutStatistics | null;
+  isLoading: boolean;
 }
 
-export default function WorkoutStatisticsView({ stats }: WorkoutStatisticsViewProps) {
+export default function WorkoutStatisticsView({ stats, isLoading }: WorkoutStatisticsViewProps) {
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="h-20 animate-pulse bg-muted rounded-lg" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">No hay estadísticas disponibles</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;

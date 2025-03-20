@@ -1,12 +1,12 @@
 # Análisis de tu Proyecto
-Fecha: Wed Mar 19 21:34:30 -03 2025
+Fecha: Wed Mar 19 23:04:40 -03 2025
 
 ## Estructura del Proyecto
 
 ### Archivos por Tipo
-- TypeScript: 69 archivos
-- React (TSX): 113 archivos
-- JavaScript: 123 archivos
+- TypeScript: 73 archivos
+- React (TSX): 115 archivos
+- JavaScript: 128 archivos
 - React (JSX): 0 archivos
 - SCSS: 0 archivos
 - CSS: 6 archivos
@@ -14,24 +14,24 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
 ### Complejidad de Archivos
 **Archivos más grandes (por líneas de código):**
 ```
-8968 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/page.js
-2663 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
+9089 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/page.js
+3050 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/[id]/page.js
+2905 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
 2520 /home/claudxfiles/Documents/AI/ai-task-manager-app/souldream/frontend/.next/server/vendor-chunks/next.js
 1924 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/lodash.js
-1874 /home/claudxfiles/Documents/AI/ai-task-manager-app/souldream/frontend/.next/static/chunks/main-app.js
 ```
 
 ## Tecnologías Detectadas
 - ✅ Next.js detectado
 - ✅ React detectado
-  - Aproximadamente 100 componentes definidos
-  - 13 hooks personalizados detectados
+  - Aproximadamente 102 componentes definidos
+  - 14 hooks personalizados detectados
   - Biblioteca UI: Shadcn UI detectada
 - ✅ Tailwind CSS detectado
   - Tema personalizado configurado
 - ✅ Supabase detectado
   - Versión: ^2.49.1
-  - Tablas detectadas: './supabase','@/lib/supabase','base64','exercise_templates','financial_goals','goal_steps','goals','id','payment_history','profiles','subscription_plans','subscriptions','subscriptions_tracker','tasks','transactions','workout_exercises','workout_progress','workout_template_exercises','workout_templates','workouts'
+  - Tablas detectadas: './supabase','@/lib/supabase','ai_interactions','base64','calendar_event_relations','exercise_templates','financial_goals','goal_steps','goals','id','payment_history','profiles','subscription_plans','subscriptions','subscriptions_tracker','tasks','transactions','user_integrations','workout_exercises','workout_progress','workout_template_exercises','workout_templates','workouts'
   - Autenticación Supabase implementada
   - Proveedor OAuth: Google
   - Funcionalidad Realtime implementada
@@ -40,7 +40,7 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
 - ✅ OpenRouter detectado
   - ✅ Configuración con provider.order
   - ✅ Proveedores: Groq, Fireworks
-  - Aproximadamente 3 prompts/conversaciones definidos
+  - Aproximadamente 5 prompts/conversaciones definidos
   - ✅ Modelo: qwen/qwq-32b:online
   - ✅ Modelo referenciado como variable
 - ✅ Integración IA: OpenRouter
@@ -52,7 +52,7 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
   - Implementación: 95%
 - ✅ Google APIs detectadas
   - ✅ Autenticación Google implementada
-  - 2 referencias a scopes OAuth detectadas
+  - 9 referencias a scopes OAuth detectadas
   - ✅ Google Calendar implementado
   - Operaciones Calendar detectadas:
     - Crear eventos: 6 referencias
@@ -60,7 +60,7 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
     - Actualizar eventos: 0 referencias
     - Eliminar eventos: 4 referencias
     - ✅ Renovación de tokens implementada
-    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/src/hooks/useGoogleC...
+    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/app/das...
   - Implementación Calendar: 70%
 - ✅ Pasarela de pagos detectada
   - Usando PayPal
@@ -71,13 +71,13 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
 ## Análisis de Rendimiento y Optimización
 
 - ✅ Image Optimization de Next.js implementado
-  - 5 componentes utilizan optimización de imágenes
+  - 6 componentes utilizan optimización de imágenes
 - ✅ Server/Client Components configurados
   - 0 Server Actions implementadas
-  - 82 componentes marcados como Client Components
+  - 84 componentes marcados como Client Components
 - ✅ Suspense y Loading States implementados
   - 0 páginas con estados de carga definidos
-- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 8 referencias
+- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 10 referencias
 - ✅ Optimizaciones de funciones (useCallback) implementadas: 7 referencias
 
 ## Estado Global del Proyecto
@@ -92,8 +92,8 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
 - ⚠️ ESLint no detectado
 ## Problemas Detectados
 
-- **P001** 🟢 console.log en código: 18
-- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 81 ocurrencias
+- **P001** 🟢 console.log en código: 74
+- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 86 ocurrencias
 
 ## Dependencias y Paquetes
 
@@ -101,7 +101,7 @@ Fecha: Wed Mar 19 21:34:30 -03 2025
 - Dependencias de desarrollo: aproximadamente 3
 ## Recomendaciones Prioritarias
 
-5. **Baja prioridad:** Eliminar los 18 console.log del código para producción
+5. **Baja prioridad:** Eliminar los 74 console.log del código para producción
 6. **Media prioridad:** Implementar pruebas unitarias y de integración para componentes clave
 
 ## Próximas Fases de Desarrollo
@@ -145,7 +145,7 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ### Áreas de Mejora
 
-- **Limpieza de código:** Eliminar los 18 console.log del código para producción
+- **Limpieza de código:** Eliminar los 74 console.log del código para producción
 - **Cobertura de pruebas:** Implementar pruebas unitarias y de integración
 - **Completar integración de pagos:** Mejorar la implementación de PayPal (actualmente al 70%)
 
@@ -158,6 +158,6 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ## Resumen
 
-Este análisis se generó automáticamente el Wed Mar 19 21:34:44 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
+Este análisis se generó automáticamente el Wed Mar 19 23:04:54 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
 
 Para obtener recomendaciones detalladas sobre cómo resolver los problemas identificados, consulta los documentos específicos enlazados en cada recomendación o implementa las soluciones sugeridas en la sección de optimizaciones.

@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/select";
 import { PlusIcon, MinusIcon } from "lucide-react";
 import WorkoutMuscleSelector from "./WorkoutMuscleSelector";
+import CreateWorkoutDialog from "./CreateWorkoutDialog";
 
 interface WorkoutDetailProps {
   id: string;
@@ -118,6 +119,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [showEditDialog, setShowEditDialog] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [showCreateDialog, setShowCreateDialog] = useState<boolean>(false);
   
   // Estado para el formulario de edición
   const [editData, setEditData] = useState({
@@ -128,9 +130,18 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
     notes: "",
     muscle_groups: [] as string[]
   });
-  const [exercises, setExercises] = useState<WorkoutExerciseInsert[]>([]);
+  
+  // Modificando el tipo para usar un tipo parcial que no requiera workout_id al inicializar
+  const [exercises, setExercises] = useState<Partial<WorkoutExerciseInsert>[]>([]);
 
   useEffect(() => {
+    // Si el ID es "new", mostrar el diálogo de creación en lugar de cargar un entrenamiento
+    if (id === "new") {
+      setIsLoading(false);
+      setShowCreateDialog(true);
+      return;
+    }
+    
     const loadWorkout = async () => {
       if (!id) return;
       
@@ -150,7 +161,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
             muscle_groups: workoutData.muscle_groups || []
           });
           
-          // Inicializar los ejercicios
+          // Inicializar los ejercicios con casting para evitar errores de TypeScript
           setExercises(workoutData.exercises.map(exercise => ({
             name: exercise.name,
             sets: exercise.sets,
@@ -242,7 +253,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
       await updateWorkout(
         id,
         updatedWorkout,
-        exercises
+        exercises as WorkoutExerciseInsert[]
       );
       
       // Recargar los datos del workout
@@ -278,7 +289,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
   const handleExerciseChange = (index: number, field: string, value: any) => {
     setExercises(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = { ...updated[index], [field]: value } as Partial<WorkoutExerciseInsert>;
       return updated;
     });
   };
@@ -295,7 +306,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
         distance: null,
         units: null,
         notes: null
-      }
+      } as Partial<WorkoutExerciseInsert>
     ]);
   };
 
@@ -355,6 +366,21 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
       muscle_groups: selected
     });
   };
+
+  const handleCreateSuccess = () => {
+    setShowCreateDialog(false);
+    router.push("/dashboard/workout");
+  };
+
+  if (id === "new") {
+    return (
+      <CreateWorkoutDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={handleCreateSuccess}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
