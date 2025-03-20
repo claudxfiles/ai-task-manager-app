@@ -87,4 +87,14 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Error de autenticación",
             headers={"WWW-Authenticate": "Bearer"},
-        ) 
+        )
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Verifica que el usuario actual esté activo.
+    En una implementación real, esto debería verificar en la base de datos
+    si el usuario tiene el estado 'activo'.
+    """
+    # Aquí podríamos hacer una verificación adicional si el usuario está activo
+    # Por ahora, simplemente pasamos el usuario tal como está
+    return current_user 

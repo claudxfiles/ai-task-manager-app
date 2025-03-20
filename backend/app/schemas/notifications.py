@@ -48,4 +48,5 @@ class Notification(BaseModel):
     updated_at: Optional[Union[datetime, str]] = None
 
     class Config:
-        orm_mode = True 
+        from_attributes = True
+        # orm_mode = True # Eliminado por ser deprecado en Pydantic v2 

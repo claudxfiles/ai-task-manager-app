@@ -168,7 +168,15 @@ export function useAuth() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback?source=calendar&t=${new Date().getTime()}`,
-          scopes: 'email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+          scopes: [
+            'email', 
+            'profile', 
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events', 
+            'https://www.googleapis.com/auth/calendar.events.readonly',
+            'https://www.googleapis.com/auth/calendar.readonly',
+            'https://www.googleapis.com/auth/calendar.settings.readonly'
+          ].join(' '),
           queryParams: {
             access_type: 'offline',
             prompt: 'consent select_account',

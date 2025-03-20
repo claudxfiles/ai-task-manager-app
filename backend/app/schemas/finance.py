@@ -37,7 +37,7 @@ class Transaction(BaseModel):
     is_deleted: bool = False
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class FinancialGoalCreate(BaseModel):
     title: str
@@ -69,4 +69,4 @@ class FinancialGoal(BaseModel):
     is_deleted: bool = False
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 

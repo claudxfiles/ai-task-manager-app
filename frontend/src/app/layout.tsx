@@ -4,9 +4,7 @@ import '@/patches';
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/providers/ThemeProvider";
-import { AuthProvider } from "@/providers/AuthProvider";
-import { ReactQueryProvider } from "@/providers/ReactQueryProvider";
+import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] });
@@ -24,18 +22,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <ReactQueryProvider>
-              {children}
-            </ReactQueryProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <Providers>
+          {children}
+        </Providers>
         <Toaster />
       </body>
     </html>
