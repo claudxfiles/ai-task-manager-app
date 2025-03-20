@@ -31,10 +31,28 @@ export async function getCalendarCredentials(userId: string): Promise<GoogleCale
       .select('credentials')
       .eq('user_id', userId)
       .eq('provider', 'google_calendar')
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    if (error) {
       console.error('Error fetching calendar credentials:', error);
+      return null;
+    }
+
+    // Si no hay datos, verificar si hay credenciales en user_metadata
+    if (!data) {
+      // Intentar obtener credenciales desde los metadatos del usuario
+      const { data: authData } = await supabase.auth.getUser();
+      const googleToken = authData.user?.user_metadata?.google_token;
+      
+      if (googleToken) {
+        return {
+          access_token: googleToken.access_token,
+          refresh_token: googleToken.refresh_token,
+          expiry_date: googleToken.expires_at * 1000 // Convertir a milisegundos
+        };
+      }
+      
+      console.log('No se encontraron credenciales de Google Calendar para el usuario');
       return null;
     }
 

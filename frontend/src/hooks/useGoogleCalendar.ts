@@ -41,11 +41,17 @@ export function useCalendarEvents(startDate: Date, endDate: Date) {
         throw new Error('Sesión de Google Calendar expirada. Por favor, reconecta tu cuenta.');
       }
       
-      return getCalendarEvents(startDate, endDate);
+      // Verificar si tenemos un ID de usuario
+      if (!session?.user?.id) {
+        console.error('ID de usuario no disponible');
+        throw new Error('ID de usuario no disponible');
+      }
+      
+      return getCalendarEvents(session.user.id, startDate, endDate);
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
     retry: isConnected ? 3 : false, // Solo reintentar si está conectado
-    enabled: isConnected && !needsReconnect, // Solo habilitar si está conectado y no necesita reconexión
+    enabled: isConnected && !needsReconnect && !!session?.user?.id, // Solo habilitar si está conectado y no necesita reconexión
   });
 }
 

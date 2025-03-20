@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.endpoints import auth, goals, tasks, finance, habits
+from app.api.endpoints import auth, goals, tasks, finance, habits, calendar
 
 api_router = APIRouter()
 
@@ -7,4 +7,5 @@ api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(goals.router, prefix="/goals", tags=["goals"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(finance.router, prefix="/finance", tags=["finance"])
-api_router.include_router(habits.router, prefix="/habits", tags=["habits"]) 
+api_router.include_router(habits.router, prefix="/habits", tags=["habits"])
+api_router.include_router(calendar.router, prefix="/calendar", tags=["calendar"]) 
