@@ -24,8 +24,8 @@ export default function HabitGoalLink({ habitId, currentGoalId }: HabitGoalLinkP
   const updateHabit = useUpdateHabit({
     onSuccess: () => {
       toast({
-        title: selectedGoalId ? "Hábito vinculado a meta" : "Hábito desvinculado",
-        description: selectedGoalId 
+        title: selectedGoalId && selectedGoalId !== "none" ? "Hábito vinculado a meta" : "Hábito desvinculado",
+        description: selectedGoalId && selectedGoalId !== "none" 
           ? "Este hábito ha sido vinculado a la meta seleccionada" 
           : "Este hábito ya no está vinculado a ninguna meta",
       });
@@ -46,7 +46,7 @@ export default function HabitGoalLink({ habitId, currentGoalId }: HabitGoalLinkP
     setIsLinking(true);
     updateHabit.mutate({
       id: habitId,
-      related_goal_id: selectedGoalId,
+      related_goal_id: selectedGoalId === "none" ? null : selectedGoalId,
     });
   };
   
@@ -80,7 +80,7 @@ export default function HabitGoalLink({ habitId, currentGoalId }: HabitGoalLinkP
               <SelectValue placeholder="Selecciona una meta" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">-- Sin meta vinculada --</SelectItem>
+              <SelectItem value="none">-- Sin meta vinculada --</SelectItem>
               {goals?.map(goal => (
                 <SelectItem key={goal.id} value={goal.id}>
                   {goal.title}
@@ -91,7 +91,7 @@ export default function HabitGoalLink({ habitId, currentGoalId }: HabitGoalLinkP
           
           <Button
             onClick={handleLinkToGoal}
-            disabled={isLinking || selectedGoalId === currentGoalId}
+            disabled={isLinking || (selectedGoalId === currentGoalId) || (selectedGoalId === "none" && !currentGoalId)}
             className="w-full"
           >
             {isLinking ? (
@@ -104,7 +104,7 @@ export default function HabitGoalLink({ habitId, currentGoalId }: HabitGoalLinkP
                 <Check className="mr-2 h-4 w-4" />
                 {currentGoalId ? 'Vinculado' : 'No vinculado'}
               </>
-            ) : selectedGoalId ? (
+            ) : selectedGoalId && selectedGoalId !== "none" ? (
               <>
                 <Link className="mr-2 h-4 w-4" />
                 Vincular a meta

@@ -391,6 +391,261 @@ export interface Database {
           created_at?: string;
         };
       };
+      workouts: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          date: string;
+          duration_minutes: number | null;
+          notes: string | null;
+          workout_type: string | null;
+          calories_burned: number | null;
+          feeling_rating: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          date?: string;
+          duration_minutes?: number | null;
+          notes?: string | null;
+          workout_type?: string | null;
+          calories_burned?: number | null;
+          feeling_rating?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          date?: string;
+          duration_minutes?: number | null;
+          notes?: string | null;
+          workout_type?: string | null;
+          calories_burned?: number | null;
+          feeling_rating?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      workout_exercises: {
+        Row: {
+          id: string;
+          workout_id: string;
+          name: string;
+          sets: number;
+          reps: number | null;
+          weight: number | null;
+          duration_seconds: number | null;
+          distance: number | null;
+          units: string | null;
+          notes: string | null;
+          order_index: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          workout_id: string;
+          name: string;
+          sets: number;
+          reps?: number | null;
+          weight?: number | null;
+          duration_seconds?: number | null;
+          distance?: number | null;
+          units?: string | null;
+          notes?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          workout_id?: string;
+          name?: string;
+          sets?: number;
+          reps?: number | null;
+          weight?: number | null;
+          duration_seconds?: number | null;
+          distance?: number | null;
+          units?: string | null;
+          notes?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      exercise_templates: {
+        Row: {
+          id: string;
+          name: string;
+          muscle_group: string;
+          exercise_type: string;
+          description: string | null;
+          instructions: string | null;
+          video_url: string | null;
+          image_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          muscle_group: string;
+          exercise_type: string;
+          description?: string | null;
+          instructions?: string | null;
+          video_url?: string | null;
+          image_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          muscle_group?: string;
+          exercise_type?: string;
+          description?: string | null;
+          instructions?: string | null;
+          video_url?: string | null;
+          image_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      workout_templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          workout_type: string;
+          estimated_duration: number | null;
+          difficulty_level: string | null;
+          is_public: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          workout_type: string;
+          estimated_duration?: number | null;
+          difficulty_level?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          workout_type?: string;
+          estimated_duration?: number | null;
+          difficulty_level?: string | null;
+          is_public?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      workout_template_exercises: {
+        Row: {
+          id: string;
+          template_id: string;
+          exercise_template_id: string | null;
+          name: string;
+          sets: number;
+          reps: number | null;
+          weight: number | null;
+          duration_seconds: number | null;
+          distance: number | null;
+          units: string | null;
+          notes: string | null;
+          order_index: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          exercise_template_id?: string | null;
+          name: string;
+          sets: number;
+          reps?: number | null;
+          weight?: number | null;
+          duration_seconds?: number | null;
+          distance?: number | null;
+          units?: string | null;
+          notes?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          template_id?: string;
+          exercise_template_id?: string | null;
+          name?: string;
+          sets?: number;
+          reps?: number | null;
+          weight?: number | null;
+          duration_seconds?: number | null;
+          distance?: number | null;
+          units?: string | null;
+          notes?: string | null;
+          order_index?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      workout_progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_name: string;
+          max_weight: number | null;
+          max_reps: number | null;
+          max_duration: number | null;
+          max_distance: number | null;
+          start_date: string;
+          last_updated: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exercise_name: string;
+          max_weight?: number | null;
+          max_reps?: number | null;
+          max_duration?: number | null;
+          max_distance?: number | null;
+          start_date?: string;
+          last_updated?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          exercise_name?: string;
+          max_weight?: number | null;
+          max_reps?: number | null;
+          max_duration?: number | null;
+          max_distance?: number | null;
+          start_date?: string;
+          last_updated?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
   };
 } 
