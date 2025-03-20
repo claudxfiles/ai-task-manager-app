@@ -33,9 +33,10 @@ class HabitUpdate(BaseModel):
     reminder_time: Optional[str] = None
     cue: Optional[str] = None
     reward: Optional[str] = None
-    streak: Optional[int] = None
+    current_streak: Optional[int] = None
     best_streak: Optional[int] = None
     total_completions: Optional[int] = None
+    related_goal_id: Optional[str] = None
 
 
 class Habit(BaseModel):
@@ -50,34 +51,38 @@ class Habit(BaseModel):
     reminder_time: Optional[str] = None
     cue: Optional[str] = None
     reward: Optional[str] = None
-    streak: int = 0
+    current_streak: int = 0
     best_streak: int = 0
     total_completions: int = 0
     created_at: Union[datetime, str]
     updated_at: Union[datetime, str]
-    is_deleted: bool = False
+    is_active: bool = True
+    related_goal_id: Optional[str] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
+        populate_by_name = True
 
 
 class HabitLogCreate(BaseModel):
-    date: Union[date, str] = None
-    completed: bool = True
+    completed_date: Union[date, str] = None
     notes: Optional[str] = None
-    value: Optional[int] = None  # Para hábitos con valores numéricos
+    quality_rating: Optional[int] = None
+    emotion: Optional[str] = None
+    value: Optional[int] = None
 
 
 class HabitLog(BaseModel):
     id: str
     habit_id: str
-    user_id: str
-    date: Union[date, str]
-    completed: bool
+    user_id: Optional[str] = None
+    completed_date: Union[date, str]
     notes: Optional[str] = None
-    value: Optional[int] = None
+    quality_rating: Optional[int] = None
+    emotion: Optional[str] = None
     created_at: Union[datetime, str]
-    updated_at: Union[datetime, str]
+    value: Optional[int] = None
 
     class Config:
-        orm_mode = True 
+        from_attributes = True
+        populate_by_name = True 

@@ -23,7 +23,7 @@ async def read_habits(
         response = supabase.table("habits") \
             .select("*") \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not response.data:
@@ -58,8 +58,8 @@ async def create_habit(
             "user_id": current_user.id,
             "created_at": now,
             "updated_at": now,
-            "is_deleted": False,
-            "streak": 0,
+            "is_active": True,
+            "current_streak": 0,
             "best_streak": 0,
             "total_completions": 0
         }
@@ -94,7 +94,7 @@ async def read_habit(
             .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not response.data:
@@ -129,7 +129,7 @@ async def update_habit(
             .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not get_response.data:
@@ -179,7 +179,7 @@ async def delete_habit(
             .select("*") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not get_response.data:
@@ -190,7 +190,7 @@ async def delete_habit(
         
         # Realizar soft delete del hábito
         delete_data = {
-            "is_deleted": True,
+            "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
         }
         
@@ -234,7 +234,7 @@ async def read_habit_logs(
             .select("id") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not habit_response.data:
@@ -246,21 +246,21 @@ async def read_habit_logs(
         # Consultar los logs
         query = supabase.table("habit_logs") \
             .select("*") \
-            .eq("habit_id", habit_id) \
-            .eq("user_id", current_user.id)
+            .eq("habit_id", habit_id)
         
+        # Aplicar filtros de fecha si se proporcionan
         if from_date:
-            query = query.gte("date", from_date.isoformat())
+            query = query.gte("completed_date", from_date.isoformat())
         
         if to_date:
-            query = query.lte("date", to_date.isoformat())
+            query = query.lte("completed_date", to_date.isoformat())
         
-        logs_response = query.order("date", desc=True).execute()
+        response = query.order("completed_date", desc=True).execute()
         
-        if not logs_response.data:
+        if not response.data:
             return []
         
-        return [HabitLog(**log) for log in logs_response.data]
+        return [HabitLog(**log) for log in response.data]
     except HTTPException:
         raise
     except Exception as e:
@@ -283,10 +283,10 @@ async def create_habit_log(
     try:
         # Verificar primero que el hábito existe y pertenece al usuario
         habit_response = supabase.table("habits") \
-            .select("*") \
+            .select("id") \
             .eq("id", habit_id) \
             .eq("user_id", current_user.id) \
-            .eq("is_deleted", False) \
+            .eq("is_active", True) \
             .execute()
         
         if not habit_response.data:
@@ -295,75 +295,35 @@ async def create_habit_log(
                 detail="Hábito no encontrado"
             )
         
-        habit = habit_response.data[0]
-        
-        # Verificar si ya existe un log para la fecha proporcionada
-        log_date = log_in.date.isoformat() if isinstance(log_in.date, date) else log_in.date
-        existing_log_response = supabase.table("habit_logs") \
-            .select("id") \
-            .eq("habit_id", habit_id) \
-            .eq("user_id", current_user.id) \
-            .eq("date", log_date) \
-            .execute()
-        
-        if existing_log_response.data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Ya existe un registro para esta fecha"
-            )
-        
-        # Crear el registro
+        # Crear el log del hábito
+        log_data = log_in.dict()
         log_id = str(uuid.uuid4())
         now = datetime.utcnow().isoformat()
         
-        log_data = {
+        # Si no se proporciona una fecha, usar la fecha actual
+        if not log_data.get("completed_date"):
+            log_data["completed_date"] = date.today().isoformat()
+        
+        log_db = {
+            **log_data,
             "id": log_id,
             "habit_id": habit_id,
             "user_id": current_user.id,
-            "date": log_date,
-            "completed": log_in.completed,
-            "notes": log_in.notes,
-            "created_at": now,
-            "updated_at": now
+            "created_at": now
         }
         
-        log_response = supabase.table("habit_logs").insert(log_data).execute()
+        response = supabase.table("habit_logs").insert(log_db).execute()
         
-        if not log_response.data:
+        if not response.data:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al crear el registro del hábito"
             )
         
-        # Actualizar estadísticas del hábito si se completó
-        if log_in.completed:
-            # Obtener todos los logs para calcular el streak actual
-            all_logs_response = supabase.table("habit_logs") \
-                .select("date, completed") \
-                .eq("habit_id", habit_id) \
-                .eq("user_id", current_user.id) \
-                .eq("completed", True) \
-                .order("date", desc=False) \
-                .execute()
-            
-            # Aquí calcular el streak actual, mejor streak y completados totales
-            # (Este cálculo puede ser más complejo dependiendo de la frecuencia del hábito)
-            total_completions = len([l for l in all_logs_response.data if l["completed"]])
-            
-            # Actualizar el hábito con las nuevas estadísticas
-            habit_update = {
-                "updated_at": now,
-                "total_completions": total_completions,
-                # Agregar cálculos de streak aquí
-            }
-            
-            supabase.table("habits") \
-                .update(habit_update) \
-                .eq("id", habit_id) \
-                .eq("user_id", current_user.id) \
-                .execute()
+        # Actualizar estadísticas del hábito (streak, total completions, etc.)
+        # Podríamos implementar esta lógica aquí o en un trigger de la base de datos
         
-        return HabitLog(**log_response.data[0])
+        return HabitLog(**response.data[0])
     except HTTPException:
         raise
     except Exception as e:
