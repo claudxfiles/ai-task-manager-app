@@ -81,14 +81,24 @@ export async function getCalendarCredentials(userId: string): Promise<GoogleCale
       return data.credentials as GoogleCalendarCredentials;
     }
 
-    // Si no hay datos en la tabla, intentar obtener de los metadatos del usuario
+    // Intentar primero con una llamada al backend para obtener metadatos
+    // Esto evita depender de la sesión del usuario en el cliente
+    try {
+      const backendCredentials = await fetchUserMetadataFromBackend(userId);
+      if (backendCredentials) {
+        return backendCredentials;
+      }
+    } catch (backendError) {
+      console.error('Error al obtener metadatos desde el backend:', backendError);
+    }
+    
+    // Como último recurso, intentar obtener de los metadatos del usuario en la sesión
     try {
       const { data: authData, error: authError } = await supabase.auth.getUser();
       
       if (authError) {
         console.error('Error al obtener sesión de usuario:', authError);
-        // Intentar con una llamada al backend para obtener metadatos
-        return await fetchUserMetadataFromBackend(userId);
+        return null;
       }
       
       if (authData?.user?.user_metadata?.google_token) {
@@ -102,8 +112,6 @@ export async function getCalendarCredentials(userId: string): Promise<GoogleCale
       }
     } catch (authError) {
       console.error('Error al acceder a la sesión de autenticación:', authError);
-      // Intentar con una llamada al backend
-      return await fetchUserMetadataFromBackend(userId);
     }
     
     console.log('No se encontraron credenciales de Google Calendar para el usuario');

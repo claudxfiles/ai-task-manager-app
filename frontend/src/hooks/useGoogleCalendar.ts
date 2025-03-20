@@ -28,8 +28,8 @@ interface GoogleToken {
 
 // Hook para obtener eventos del calendario
 export function useCalendarEvents(startDate: Date, endDate: Date) {
-  const { session } = useAuth();
-  const { isConnected, needsReconnect } = useGoogleCalendarStatus();
+  const { session, loading: sessionLoading } = useAuth();
+  const { isConnected, needsReconnect, statusChecked } = useGoogleCalendarStatus();
   
   return useQuery({
     queryKey: ['calendar-events', startDate.toISOString(), endDate.toISOString()],
@@ -55,7 +55,7 @@ export function useCalendarEvents(startDate: Date, endDate: Date) {
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
     retry: isConnected ? 3 : false, // Solo reintentar si está conectado
-    enabled: isConnected && !needsReconnect && !!session?.user?.id, // Solo habilitar si está conectado y no necesita reconexión
+    enabled: !sessionLoading && isConnected && !needsReconnect && !!session?.user?.id && statusChecked, // Solo habilitar si la sesión está cargada y está conectado
   });
 }
 
