@@ -60,15 +60,31 @@ export function useAuth() {
   // Iniciar sesión con Google
   const signInWithGoogle = async (redirectTo?: string) => {
     try {
+      console.log('Iniciando autenticación con Google, solicitando permisos de Calendar');
+      
+      // Asegurarnos de pedir todos los permisos necesarios y forzar el consentimiento
       const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: redirectTo || `${window.location.origin}/auth/callback`,
-          scopes: 'email profile https://www.googleapis.com/auth/calendar', // Solicitar acceso a Calendar
+          scopes: 'email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
+          queryParams: {
+            access_type: 'offline', // Para obtener refresh_token
+            prompt: 'consent select_account', // Forzar la pantalla de consentimiento y selección de cuenta
+            include_granted_scopes: 'true',
+          },
         },
       });
+      
+      if (error) {
+        console.error('Error en la autenticación con Google:', error);
+      } else {
+        console.log('Redirección a Google iniciada correctamente');
+      }
+      
       return { data, error };
     } catch (error: any) {
+      console.error('Excepción en la autenticación con Google:', error);
       return { data: null, error };
     }
   };
@@ -147,19 +163,29 @@ export function useAuth() {
   // Solicitar permisos de Google Calendar
   const requestGoogleCalendarPermission = async () => {
     try {
+      console.log('Solicitando permisos de Google Calendar con acceso offline y consent forzado');
       const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          scopes: 'https://www.googleapis.com/auth/calendar',
+          redirectTo: `${window.location.origin}/auth/callback?source=calendar&t=${new Date().getTime()}`,
+          scopes: 'email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events',
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'consent select_account',
+            include_granted_scopes: 'true',
           },
         },
       });
+      
+      if (error) {
+        console.error('Error al solicitar permisos de Google Calendar:', error);
+      } else {
+        console.log('Solicitud de permisos enviada correctamente');
+      }
+      
       return { data, error };
     } catch (error: any) {
+      console.error('Excepción al solicitar permisos de Google Calendar:', error);
       return { data: null, error };
     }
   };

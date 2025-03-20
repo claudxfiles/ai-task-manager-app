@@ -7,25 +7,43 @@ import { useToast } from '@/components/ui/use-toast';
 
 export function ConnectGoogleButton() {
   const [isLoading, setIsLoading] = useState(false);
-  const { signInWithGoogle, requestGoogleCalendarPermission } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
   const handleConnect = async () => {
     try {
       setIsLoading(true);
-      const { error } = await requestGoogleCalendarPermission();
+      console.log('Iniciando conexión con Google Calendar...');
+      
+      // Añadimos timestamp para forzar una nueva solicitud y evitar cachés
+      const callbackUrl = `${window.location.origin}/auth/callback?source=calendar&t=${new Date().getTime()}`;
+      
+      toast({
+        title: 'Conectando...',
+        description: 'Iniciando proceso de autenticación con Google',
+      });
+      
+      const { data, error } = await signInWithGoogle(callbackUrl);
       
       if (error) {
+        console.error('Error al conectar con Google:', error);
         toast({
           title: 'Error de conexión',
-          description: error.message,
+          description: error.message || 'No se pudo conectar con Google Calendar',
           variant: 'destructive',
+        });
+      } else {
+        console.log('Proceso de autenticación iniciado correctamente', data);
+        toast({
+          title: 'Conectando...',
+          description: 'Redirigiendo a Google para autorizar el acceso al calendario',
         });
       }
     } catch (error: any) {
+      console.error('Error en el proceso de conexión con Google:', error);
       toast({
         title: 'Error de conexión',
-        description: 'No se pudo conectar con Google Calendar',
+        description: error.message || 'No se pudo conectar con Google Calendar',
         variant: 'destructive',
       });
     } finally {

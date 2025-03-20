@@ -3,14 +3,26 @@
 // Función para obtener eventos del calendario
 export async function getCalendarEvents(startDate: Date, endDate: Date, calendarId = 'primary') {
   try {
+    console.log(`Solicitando eventos del calendario desde ${startDate.toISOString()} hasta ${endDate.toISOString()}`);
+    
     const response = await fetch(`/api/v1/calendar?timeMin=${startDate.toISOString()}&timeMax=${endDate.toISOString()}&calendarId=${calendarId}`);
     
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ error: 'Error de servidor' }));
+      console.error('Error de respuesta al obtener eventos:', errorData);
+      
+      // Mensajes de error más específicos
+      if (response.status === 401) {
+        console.error('Error de autenticación (401):', errorData);
+        throw new Error(errorData.error || 'Usuario no conectado a Google Calendar');
+      }
+      
       throw new Error(errorData.error || 'Error al obtener eventos del calendario');
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log(`Eventos obtenidos correctamente: ${data.length} eventos`);
+    return data;
   } catch (error) {
     console.error('Error al obtener eventos del calendario:', error);
     throw error;
