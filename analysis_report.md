@@ -1,37 +1,37 @@
 # Análisis de tu Proyecto
-Fecha: Wed Mar 19 23:04:40 -03 2025
+Fecha: Thu Mar 20 19:30:51 -03 2025
 
 ## Estructura del Proyecto
 
 ### Archivos por Tipo
-- TypeScript: 73 archivos
-- React (TSX): 115 archivos
-- JavaScript: 128 archivos
+- TypeScript: 72 archivos
+- React (TSX): 121 archivos
+- JavaScript: 106 archivos
 - React (JSX): 0 archivos
 - SCSS: 0 archivos
-- CSS: 6 archivos
+- CSS: 5 archivos
 
 ### Complejidad de Archivos
 **Archivos más grandes (por líneas de código):**
 ```
-9089 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/page.js
-3050 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/[id]/page.js
-2905 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
-2520 /home/claudxfiles/Documents/AI/ai-task-manager-app/souldream/frontend/.next/server/vendor-chunks/next.js
-1924 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/lodash.js
+2718 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
+2270 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/calendar/page.js
+1874 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/main-app.js
+1874 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/page.js
+1565 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/layout.js
 ```
 
 ## Tecnologías Detectadas
 - ✅ Next.js detectado
 - ✅ React detectado
-  - Aproximadamente 102 componentes definidos
-  - 14 hooks personalizados detectados
+  - Aproximadamente 109 componentes definidos
+  - 15 hooks personalizados detectados
   - Biblioteca UI: Shadcn UI detectada
 - ✅ Tailwind CSS detectado
   - Tema personalizado configurado
 - ✅ Supabase detectado
   - Versión: ^2.49.1
-  - Tablas detectadas: './supabase','@/lib/supabase','ai_interactions','base64','calendar_event_relations','exercise_templates','financial_goals','goal_steps','goals','id','payment_history','profiles','subscription_plans','subscriptions','subscriptions_tracker','tasks','transactions','user_integrations','workout_exercises','workout_progress','workout_template_exercises','workout_templates','workouts'
+  - Tablas detectadas: './supabase','@/lib/supabase','ai_interactions','base64','calendar_event_relations','calendar_events','calendar_sync_logs','exercise_templates','financial_goals','goal_steps','goals','id','payment_history','profiles','subscription_plans','subscriptions','subscriptions_tracker','tasks','transactions','user_integrations','workout_exercises','workout_progress','workout_template_exercises','workout_templates','workouts'
   - Autenticación Supabase implementada
   - Proveedor OAuth: Google
   - Funcionalidad Realtime implementada
@@ -40,7 +40,7 @@ Fecha: Wed Mar 19 23:04:40 -03 2025
 - ✅ OpenRouter detectado
   - ✅ Configuración con provider.order
   - ✅ Proveedores: Groq, Fireworks
-  - Aproximadamente 5 prompts/conversaciones definidos
+  - Aproximadamente 7 prompts/conversaciones definidos
   - ✅ Modelo: qwen/qwq-32b:online
   - ✅ Modelo referenciado como variable
 - ✅ Integración IA: OpenRouter
@@ -52,13 +52,13 @@ Fecha: Wed Mar 19 23:04:40 -03 2025
   - Implementación: 95%
 - ✅ Google APIs detectadas
   - ✅ Autenticación Google implementada
-  - 9 referencias a scopes OAuth detectadas
+  - 10 referencias a scopes OAuth detectadas
   - ✅ Google Calendar implementado
   - Operaciones Calendar detectadas:
-    - Crear eventos: 6 referencias
+    - Crear eventos: 5 referencias
     - Listar eventos: 4 referencias
-    - Actualizar eventos: 0 referencias
-    - Eliminar eventos: 4 referencias
+    - Actualizar eventos: 6 referencias
+    - Eliminar eventos: 10 referencias
     - ✅ Renovación de tokens implementada
     - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/app/das...
   - Implementación Calendar: 70%
@@ -71,14 +71,14 @@ Fecha: Wed Mar 19 23:04:40 -03 2025
 ## Análisis de Rendimiento y Optimización
 
 - ✅ Image Optimization de Next.js implementado
-  - 6 componentes utilizan optimización de imágenes
+  - 7 componentes utilizan optimización de imágenes
 - ✅ Server/Client Components configurados
   - 0 Server Actions implementadas
-  - 84 componentes marcados como Client Components
+  - 88 componentes marcados como Client Components
 - ✅ Suspense y Loading States implementados
   - 0 páginas con estados de carga definidos
-- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 10 referencias
-- ✅ Optimizaciones de funciones (useCallback) implementadas: 7 referencias
+- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 11 referencias
+- ✅ Optimizaciones de funciones (useCallback) implementadas: 9 referencias
 
 ## Estado Global del Proyecto
 
@@ -93,11 +93,11 @@ Fecha: Wed Mar 19 23:04:40 -03 2025
 ## Problemas Detectados
 
 - **P001** 🟢 console.log en código: 74
-- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 86 ocurrencias
+- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 95 ocurrencias
 
 ## Dependencias y Paquetes
 
-- Dependencias de producción: aproximadamente 22
+- Dependencias de producción: aproximadamente 23
 - Dependencias de desarrollo: aproximadamente 3
 ## Recomendaciones Prioritarias
 
@@ -158,6 +158,6 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ## Resumen
 
-Este análisis se generó automáticamente el Wed Mar 19 23:04:54 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
+Este análisis se generó automáticamente el Thu Mar 20 19:30:58 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
 
 Para obtener recomendaciones detalladas sobre cómo resolver los problemas identificados, consulta los documentos específicos enlazados en cada recomendación o implementa las soluciones sugeridas en la sección de optimizaciones.

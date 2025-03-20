@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
