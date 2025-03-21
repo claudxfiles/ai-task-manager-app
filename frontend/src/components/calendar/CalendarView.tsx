@@ -71,14 +71,36 @@ export function CalendarView() {
   // Obtener eventos del calendario
   const { data: calendarEvents = [], isLoading, isError, error, refetch } = useCalendarEvents(startDate, endDate);
   
-  // Mostrar mensaje de error si ocurre
+  // Efecto para mostrar mensaje de error si ocurre
   useEffect(() => {
     if (isError && error instanceof Error) {
-      toast({
-        title: "Error al cargar eventos",
-        description: error.message || "Hubo un problema al cargar los eventos del calendario",
-        variant: "destructive"
-      });
+      // Verificar si el mensaje de error indica un problema de reconexión
+      if (
+        error.message.includes('reconecta tu cuenta') || 
+        error.message.includes('expirado') ||
+        error.message.includes('permisos')
+      ) {
+        toast({
+          title: "Problema de conexión con Google Calendar",
+          description: "Tu sesión con Google Calendar ha expirado o tiene problemas de permisos. Por favor, reconecta tu cuenta.",
+          variant: "destructive",
+          action: (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.href = '/auth/reconnect?source=calendar_error'}
+            >
+              Reconectar
+            </Button>
+          )
+        });
+      } else {
+        toast({
+          title: "Error al cargar eventos",
+          description: error.message || "Hubo un problema al cargar los eventos del calendario",
+          variant: "destructive"
+        });
+      }
     }
   }, [isError, error, toast]);
   
@@ -346,108 +368,123 @@ export function CalendarView() {
     );
   }
   
+  // Agregar un mensaje de estado en el calendario
+  function renderStatusMessage() {
+    // Mostrar mensaje cuando no está conectado a Google Calendar
+    if (!isConnected) {
+      return (
+        <div className="flex flex-col items-center justify-center h-40 gap-2 p-4 border rounded-md bg-gray-50 dark:bg-gray-800">
+          <CalendarIcon className="h-8 w-8 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground text-center">No estás conectado a Google Calendar</p>
+          <ConnectGoogleButton />
+        </div>
+      );
+    }
+
+    // Mostrar mensaje cuando se requiere reconexión
+    if (needsReconnect) {
+      return (
+        <div className="flex flex-col items-center justify-center h-40 gap-2 p-4 border rounded-md bg-orange-50 dark:bg-orange-900/20">
+          <Bug className="h-8 w-8 text-orange-500" />
+          <p className="text-muted-foreground text-center">Tu sesión con Google Calendar ha expirado</p>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={() => window.location.href = '/auth/reconnect?source=calendar_view'}
+            className="bg-orange-500 hover:bg-orange-600"
+          >
+            Reconectar Google Calendar
+          </Button>
+        </div>
+      );
+    }
+
+    // Mostrar mensaje cuando está cargando
+    if (isLoading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-40 gap-2">
+          <RotateCw className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Cargando eventos del calendario...</p>
+        </div>
+      );
+    }
+
+    return null;
+  }
+  
   return (
-    <Card className="shadow-md">
-      <CardHeader className="pb-2">
+    <Card className="w-full">
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">{formatDateHeader()}</CardTitle>
-          <div className="flex items-center gap-2">
-            <Tabs defaultValue={view} onValueChange={(value) => setView(value as any)}>
-              <TabsList>
-                <TabsTrigger value="day">Día</TabsTrigger>
-                <TabsTrigger value="week">Semana</TabsTrigger>
-                <TabsTrigger value="month">Mes</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Button variant="outline" size="icon" onClick={() => navigate('prev')}>
+          <CardTitle>
+            Calendario
+            {isConnected && (
+              <Badge variant={needsReconnect ? "destructive" : "outline"} className="ml-2">
+                {needsReconnect ? "Requiere reconexión" : "Conectado a Google"}
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" onClick={() => navigate('prev')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => navigate('next')}>
+            <Button variant="ghost" size="sm" onClick={() => setCurrentDate(new Date())}>
+              Hoy
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => navigate('next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="icon" 
                     onClick={handleSync}
                     disabled={!isConnected || needsReconnect || isSyncing}
                   >
-                    {isSyncing ? (
-                      <RotateCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
+                    {isSyncing ? <RotateCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  Sincronizar calendario
+                  <p>Sincronizar con Google Calendar</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
         </div>
-        
-        {/* Estado de conexión */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-2">
-            {statusChecked ? (
-              isConnected ? (
-                <Badge variant="outline" className="flex items-center gap-1 bg-green-50">
-                  <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                  Conectado a Google Calendar
-                </Badge>
-              ) : (
-                <ConnectGoogleButton />
-              )
-            ) : (
-              <Badge variant="outline" className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse"></span>
-                Verificando conexión...
-              </Badge>
-            )}
-            
-            {isConnected && needsReconnect && (
-              <Badge variant="outline" className="flex items-center gap-1 bg-yellow-50 text-yellow-800">
-                <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-                Sesión expirada
-              </Badge>
-            )}
+
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-medium">{formatDateHeader()}</div>
+          <div>
+            <Tabs defaultValue="week" value={view} onValueChange={(value) => setView(value as 'day' | 'week' | 'month')}>
+              <TabsList>
+                <TabsTrigger value="day">Día</TabsTrigger>
+                <TabsTrigger value="week">Semana</TabsTrigger>
+                <TabsTrigger value="month">Mes</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-          
-          {lastSyncStats && (
-            <Badge variant="outline" className="flex items-center gap-1 text-xs">
-              <span className="text-muted-foreground">Última sincronización:</span>
-              {format(lastSyncStats.timestamp, 'dd/MM HH:mm')}
-            </Badge>
-          )}
         </div>
+        
+        {lastSyncStats && lastSyncStats.timestamp && (
+          <div className="text-xs text-muted-foreground mt-1">
+            Última sincronización: {format(lastSyncStats.timestamp, 'dd/MM/yyyy HH:mm', { locale: es })}
+          </div>
+        )}
       </CardHeader>
       
       <CardContent>
-        {/* Estado de carga */}
-        {(sessionLoading || (isLoading && !isError)) ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="flex flex-col items-center gap-2">
-              <RotateCw className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-muted-foreground">Cargando eventos...</p>
-            </div>
-          </div>
-        ) : !isConnected && statusChecked ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <CalendarIcon className="h-12 w-12 text-muted-foreground" />
-            <div className="text-center">
-              <h3 className="text-lg font-medium">Calendario no conectado</h3>
-              <p className="text-muted-foreground mb-4">Conecta tu cuenta de Google Calendar para ver y gestionar tus eventos</p>
-              <ConnectGoogleButton />
-            </div>
-          </div>
-        ) : (
-          // Renderizado condicional según la vista
-          view === 'day' ? renderDayView() : 
-          view === 'week' ? renderWeekView() : 
-          renderMonthView()
+        {/* Mostrar el mensaje de estado */}
+        {renderStatusMessage()}
+        
+        {/* Contenido del calendario según la vista */}
+        {isConnected && !needsReconnect && !isLoading && (
+          <>
+            {view === 'day' && renderDayView()}
+            {view === 'week' && renderWeekView()}
+            {view === 'month' && renderMonthView()}
+          </>
         )}
       </CardContent>
     </Card>

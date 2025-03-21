@@ -161,13 +161,15 @@ export function useAuth() {
   };
 
   // Solicitar permisos de Google Calendar
-  const requestGoogleCalendarPermission = async () => {
+  const requestGoogleCalendarPermission = async (options?: { forceConsent?: boolean }) => {
     try {
-      console.log('Solicitando permisos de Google Calendar con acceso offline y consent forzado');
+      const forceConsent = options?.forceConsent || false;
+      console.log(`Solicitando permisos de Google Calendar con acceso offline y consent ${forceConsent ? 'forzado' : 'normal'}`);
+      
       const { data, error } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?source=calendar&t=${new Date().getTime()}`,
+          redirectTo: `${window.location.origin}/auth/callback?source=calendar&forceConsent=${forceConsent}&t=${new Date().getTime()}`,
           scopes: [
             'email', 
             'profile', 
@@ -179,7 +181,7 @@ export function useAuth() {
           ].join(' '),
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent select_account',
+            prompt: forceConsent ? 'consent select_account' : 'select_account',
             include_granted_scopes: 'true',
           },
         },

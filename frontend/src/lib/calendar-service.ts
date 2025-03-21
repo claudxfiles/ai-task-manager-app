@@ -1,7 +1,7 @@
 // Servicio para interactuar con las APIs de calendario
 
 import { supabase } from "./supabase";
-import { CalendarEvent, EventSource } from "@/types/calendar";
+import type { CalendarEvent, EventSourceType } from '@/types/calendar';
 import { parseISO, format, addHours, addMinutes, isSameDay, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -199,50 +199,136 @@ export async function refreshTokenIfNeeded(userId: string, credentials: GoogleCa
 // Función para obtener eventos del calendario
 export async function getCalendarEvents(userId: string, startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
   try {
-    // Obtener credenciales de Google Calendar
     const credentials = await getCalendarCredentials(userId);
-    if (!credentials) {
-      return []; // Si no hay credenciales, devolver array vacío
+    
+    if (!credentials || !credentials.access_token) {
+      console.error('No hay credenciales de Google Calendar disponibles');
+      throw new Error('No estás conectado a Google Calendar');
     }
-
-    // Refrescar token si es necesario
-    const refreshedCredentials = await refreshTokenIfNeeded(userId, credentials);
-
-    // Formatear fechas para la API
+    
+    // Asegurarse de que las fechas estén en formato ISO
     const timeMin = startDate.toISOString();
     const timeMax = endDate.toISOString();
-
-    // Llamar a la API de Google Calendar
-    const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`, {
-      headers: {
-        'Authorization': `Bearer ${refreshedCredentials.access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
+    
+    // Construir URL para la API
+    const apiUrl = new URL('/api/v1/calendar/events', window.location.origin);
+    apiUrl.searchParams.append('timeMin', timeMin);
+    apiUrl.searchParams.append('timeMax', timeMax);
+    
+    console.log('GET', apiUrl.toString());
+    
+    // Realizar la solicitud a nuestra API
+    const response = await fetch(apiUrl);
+    
     if (!response.ok) {
       const errorData = await response.json();
+      
+      // Detectar errores de permisos insuficientes
+      if (response.status === 403 && errorData.errorCode === 'INSUFFICIENT_SCOPES') {
+        console.error('Error 403 Forbidden: Permisos insuficientes para acceder al calendario');
+        
+        // Intentar reparar los tokens primero
+        const repairResult = await repairGoogleTokens(userId);
+        
+        if (repairResult.success) {
+          console.log('Tokens reparados exitosamente, reintentando...');
+          return getCalendarEvents(userId, startDate, endDate);
+        }
+        
+        // Si aún así falla, necesitamos reconexión con consentimiento forzado
+        if (errorData.forceConsent) {
+          // Redirigir a la página de reconexión con el parámetro forceConsent
+          window.location.href = `/auth/reconnect?source=calendar_insufficient_scopes&forceConsent=true&userId=${userId}`;
+          throw new Error('Redirigiendo para obtener permisos adicionales...');
+        }
+        
+        throw new Error('Permisos insuficientes. Por favor, reconecta tu cuenta de Google Calendar.');
+      }
+      
+      // Manejar otros tipos de errores
+      if (response.status === 401 || response.status === 403 || errorData.needsReconnect) {
+        console.error(`Error ${response.status}: ${errorData.error}`);
+        
+        // Intentar reparar los tokens primero
+        const repairResult = await repairGoogleTokens(userId);
+        
+        if (repairResult.success) {
+          console.log('Tokens reparados exitosamente, reintentando...');
+          return getCalendarEvents(userId, startDate, endDate);
+        }
+        
+        // Si la reparación falla, lanzar error para que la UI muestre mensaje de reconexión
+        throw new Error('Error de autenticación con Google Calendar. Por favor, reconecta tu cuenta.');
+      }
+      
       console.error('Error fetching calendar events:', errorData);
-      return [];
+      throw new Error(errorData.error || `Error al obtener eventos (${response.status})`);
     }
+    
+    const googleEvents = await response.json();
+    
+    // Transformar eventos de Google a nuestro formato
+    return googleEvents.map((event: GoogleCalendarEvent) => {
+      return {
+        id: event.id,
+        title: event.summary,
+        description: event.description || '',
+        start: event.start.dateTime || event.start.date || '',
+        end: event.end.dateTime || event.end.date || '',
+        location: event.location || '',
+        color: event.colorId || '',
+        isAllDay: !!event.start.date,
+        source: 'google' as EventSourceType,
+      };
+    });
+  } catch (error: any) {
+    console.error('Error fetching calendar events:', error);
+    
+    // Propagar error para manejo en la UI
+    throw error;
+  }
+}
 
+// Función para reparar tokens de Google cuando hay problemas con ellos
+async function repairGoogleTokens(userId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    console.log('Intentando reparar tokens de Google para el usuario:', userId);
+    
+    // Llamar a nuestro API endpoint para reparar tokens
+    const response = await fetch(`/api/v1/auth/repair-tokens?userId=${userId}`);
     const data = await response.json();
     
-    // Transformar eventos de Google Calendar a nuestro formato
-    return data.items.map((item: any) => ({
-      id: item.id,
-      title: item.summary,
-      start: item.start.dateTime || item.start.date,
-      end: item.end.dateTime || item.end.date,
-      allDay: !item.start.dateTime,
-      description: item.description || '',
-      source: 'google' as EventSource,
-      color: '#4285F4', // Color de Google
-      sourceId: item.id
-    }));
+    if (!response.ok) {
+      throw new Error(data.error || 'Error desconocido reparando tokens');
+    }
+    
+    // Si la reparación indica que se necesita reconexión completa, redirigir a la página de reconexión
+    if (data.needsFullReconnect) {
+      console.log('Se requiere reconexión completa con Google Calendar');
+      
+      // Redirigir a la página de reconexión
+      // No redirigir inmediatamente para evitar problemas con localStorage o state
+      setTimeout(() => {
+        window.location.href = `/auth/reconnect?source=calendar_repair&userId=${userId}&forceConsent=true`;
+      }, 100);
+      
+      return {
+        success: false,
+        message: 'Se requiere reconexión completa con Google Calendar'
+      };
+    }
+    
+    // Si la reparación fue exitosa
+    return {
+      success: true,
+      message: data.message || 'Tokens reparados exitosamente'
+    };
   } catch (error) {
-    console.error('Error in getCalendarEvents:', error);
-    return [];
+    console.error('Error reparando tokens de Google:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Error desconocido al reparar tokens'
+    };
   }
 }
 
