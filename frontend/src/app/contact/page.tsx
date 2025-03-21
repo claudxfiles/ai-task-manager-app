@@ -57,6 +57,12 @@ export default function ContactPage() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   Envíanos un mensaje
                 </h2>
+                <div className="mb-4 flex items-center space-x-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <p className="text-sm text-green-700 dark:text-green-400">
+                    Nuestro sistema de contacto está 100% operativo. Te responderemos a la brevedad.
+                  </p>
+                </div>
                 <ContactForm />
               </motion.div>
               
@@ -78,7 +84,7 @@ export default function ContactPage() {
                       </div>
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">Email</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">soporte@souldream.com</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">claudio.alcaman@gmail.com</p>
                       </div>
                     </div>
                     
