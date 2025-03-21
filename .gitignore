@@ -1,7 +1,11 @@
 # Dependencies
 node_modules/
+node_modules
 .pnp
 .pnp.js
+backend/node_modules/
+frontend/node_modules/
+*/node_modules/
 
 # Testing
 coverage/
@@ -9,6 +13,8 @@ coverage/
 # Next.js
 .next/
 out/
+*/.next/
+frontend/.next/
 
 # Production
 build/
@@ -29,6 +35,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+frontend/.env
+backend/.env
+*/.env
 
 # Vercel
 .vercel
@@ -58,6 +67,10 @@ var/
 venv/
 ENV/
 backend/venv/
+backend/new_venv/
+*/venv/
+**/venv/
+**/venv/**
 
 # IDE
 .idea/
@@ -70,4 +83,7 @@ logs
 *.log
 
 # OS specific
-Thumbs.db 
+Thumbs.db
+
+# Large files
+*.node 
