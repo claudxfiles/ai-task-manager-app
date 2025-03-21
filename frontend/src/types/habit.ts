@@ -3,27 +3,30 @@ export type Habit = {
   user_id: string;
   title: string;
   description?: string;
-  frequency: 'daily' | 'weekly' | 'specific_days';
-  specific_days?: string[];
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  specific_days?: number[] | null;
   category?: string;
   reminder_time?: string;
   cue?: string;
   reward?: string;
   current_streak: number;
   best_streak: number;
+  goal_value?: number;
+  total_completions?: number;
   created_at: string;
   updated_at: string;
+  is_active?: boolean;
+  related_goal_id?: string;
 };
 
 export type HabitCreate = {
   title: string;
-  description?: string;
-  frequency: 'daily' | 'weekly' | 'specific_days';
-  specific_days?: string[];
-  category?: string;
-  reminder_time?: string;
-  cue?: string;
-  reward?: string;
+  description?: string | null;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
+  specific_days?: number[] | null;
+  goal_value?: number;
+  category?: string | null;
+  is_active?: boolean;
 };
 
 export type HabitUpdate = Partial<HabitCreate>;
@@ -36,21 +39,22 @@ export type HabitLog = {
   quality_rating?: number;
   emotion?: string;
   created_at: string;
+  value?: number;
 };
 
 export type HabitLogCreate = {
   habit_id: string;
   completed_date: string;
-  notes?: string;
-  quality_rating?: number;
-  emotion?: string;
+  notes?: string | null;
+  quality_rating?: number | null;
+  emotion?: string | null;
+  value?: number | null;
 };
 
 export type HabitWithLogsAndProgress = Habit & {
   logs?: HabitLog[];
   progressToday: boolean;
   progressThisWeek: number;
-  progressThisMonth: number;
 };
 
 export type HabitCategory = {
@@ -60,53 +64,13 @@ export type HabitCategory = {
   color: string;
 };
 
-export const HABIT_CATEGORIES: HabitCategory[] = [
-  {
-    id: 'health',
-    name: 'Salud',
-    icon: 'heart',
-    color: 'text-red-500',
-  },
-  {
-    id: 'fitness',
-    name: 'Fitness',
-    icon: 'dumbbell',
-    color: 'text-blue-500',
-  },
-  {
-    id: 'productivity',
-    name: 'Productividad',
-    icon: 'briefcase',
-    color: 'text-indigo-500',
-  },
-  {
-    id: 'learning',
-    name: 'Aprendizaje',
-    icon: 'book',
-    color: 'text-emerald-500',
-  },
-  {
-    id: 'mindfulness',
-    name: 'Mindfulness',
-    icon: 'brain',
-    color: 'text-purple-500',
-  },
-  {
-    id: 'personal',
-    name: 'Personal',
-    icon: 'user',
-    color: 'text-amber-500',
-  },
-  {
-    id: 'finance',
-    name: 'Finanzas',
-    icon: 'dollar-sign',
-    color: 'text-green-500',
-  },
-  {
-    id: 'other',
-    name: 'Otros',
-    icon: 'grid',
-    color: 'text-gray-500',
-  },
+export const HABIT_CATEGORIES = [
+  { id: 'salud', name: 'Salud', icon: '💪', color: '#10b981' },
+  { id: 'fitness', name: 'Fitness', icon: '🏃', color: '#f97316' },
+  { id: 'productividad', name: 'Productividad', icon: '⏱️', color: '#3b82f6' },
+  { id: 'aprendizaje', name: 'Aprendizaje', icon: '📚', color: '#8b5cf6' },
+  { id: 'mindfulness', name: 'Mindfulness', icon: '🧘', color: '#06b6d4' },
+  { id: 'personal', name: 'Personal', icon: '❤️', color: '#ec4899' },
+  { id: 'finanzas', name: 'Finanzas', icon: '💰', color: '#14b8a6' },
+  { id: 'otros', name: 'Otros', icon: '🔄', color: '#6b7280' },
 ]; 

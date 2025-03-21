@@ -1,12 +1,12 @@
 # Análisis de tu Proyecto
-Fecha: Thu Mar 20 19:30:51 -03 2025
+Fecha: Thu Mar 20 22:29:38 -03 2025
 
 ## Estructura del Proyecto
 
 ### Archivos por Tipo
-- TypeScript: 72 archivos
+- TypeScript: 71 archivos
 - React (TSX): 121 archivos
-- JavaScript: 106 archivos
+- JavaScript: 100 archivos
 - React (JSX): 0 archivos
 - SCSS: 0 archivos
 - CSS: 5 archivos
@@ -14,8 +14,8 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
 ### Complejidad de Archivos
 **Archivos más grandes (por líneas de código):**
 ```
-2718 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
-2270 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/calendar/page.js
+3601 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/habits/page.js
+2498 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
 1874 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/main-app.js
 1874 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/page.js
 1565 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/layout.js
@@ -25,12 +25,13 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
 - ✅ Next.js detectado
 - ✅ React detectado
   - Aproximadamente 109 componentes definidos
-  - 15 hooks personalizados detectados
+  - 17 hooks personalizados detectados
   - Biblioteca UI: Shadcn UI detectada
 - ✅ Tailwind CSS detectado
   - Tema personalizado configurado
 - ✅ Supabase detectado
-  - Versión: ^2.49.1
+  - Versión: ^0.6.1
+^2.49.1
   - Tablas detectadas: './supabase','@/lib/supabase','ai_interactions','base64','calendar_event_relations','calendar_events','calendar_sync_logs','exercise_templates','financial_goals','goal_steps','goals','id','payment_history','profiles','subscription_plans','subscriptions','subscriptions_tracker','tasks','transactions','user_integrations','workout_exercises','workout_progress','workout_template_exercises','workout_templates','workouts'
   - Autenticación Supabase implementada
   - Proveedor OAuth: Google
@@ -40,7 +41,7 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
 - ✅ OpenRouter detectado
   - ✅ Configuración con provider.order
   - ✅ Proveedores: Groq, Fireworks
-  - Aproximadamente 7 prompts/conversaciones definidos
+  - Aproximadamente 3 prompts/conversaciones definidos
   - ✅ Modelo: qwen/qwq-32b:online
   - ✅ Modelo referenciado como variable
 - ✅ Integración IA: OpenRouter
@@ -52,15 +53,15 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
   - Implementación: 95%
 - ✅ Google APIs detectadas
   - ✅ Autenticación Google implementada
-  - 10 referencias a scopes OAuth detectadas
+  - 6 referencias a scopes OAuth detectadas
   - ✅ Google Calendar implementado
   - Operaciones Calendar detectadas:
     - Crear eventos: 5 referencias
     - Listar eventos: 4 referencias
-    - Actualizar eventos: 6 referencias
-    - Eliminar eventos: 10 referencias
+    - Actualizar eventos: 1 referencias
+    - Eliminar eventos: 5 referencias
     - ✅ Renovación de tokens implementada
-    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/app/das...
+    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/src/lib/calendar-ser...
   - Implementación Calendar: 70%
 - ✅ Pasarela de pagos detectada
   - Usando PayPal
@@ -74,10 +75,10 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
   - 7 componentes utilizan optimización de imágenes
 - ✅ Server/Client Components configurados
   - 0 Server Actions implementadas
-  - 88 componentes marcados como Client Components
+  - 92 componentes marcados como Client Components
 - ✅ Suspense y Loading States implementados
   - 0 páginas con estados de carga definidos
-- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 11 referencias
+- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 10 referencias
 - ✅ Optimizaciones de funciones (useCallback) implementadas: 9 referencias
 
 ## Estado Global del Proyecto
@@ -92,16 +93,16 @@ Fecha: Thu Mar 20 19:30:51 -03 2025
 - ⚠️ ESLint no detectado
 ## Problemas Detectados
 
-- **P001** 🟢 console.log en código: 74
-- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 95 ocurrencias
+- **P001** 🟢 console.log en código: 78
+- **P002** 🟡 Uso excesivo de 'any' en TypeScript: 96 ocurrencias
 
 ## Dependencias y Paquetes
 
-- Dependencias de producción: aproximadamente 23
+- Dependencias de producción: aproximadamente 24
 - Dependencias de desarrollo: aproximadamente 3
 ## Recomendaciones Prioritarias
 
-5. **Baja prioridad:** Eliminar los 74 console.log del código para producción
+5. **Baja prioridad:** Eliminar los 78 console.log del código para producción
 6. **Media prioridad:** Implementar pruebas unitarias y de integración para componentes clave
 
 ## Próximas Fases de Desarrollo
@@ -145,7 +146,7 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ### Áreas de Mejora
 
-- **Limpieza de código:** Eliminar los 74 console.log del código para producción
+- **Limpieza de código:** Eliminar los 78 console.log del código para producción
 - **Cobertura de pruebas:** Implementar pruebas unitarias y de integración
 - **Completar integración de pagos:** Mejorar la implementación de PayPal (actualmente al 70%)
 
@@ -158,6 +159,6 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ## Resumen
 
-Este análisis se generó automáticamente el Thu Mar 20 19:30:58 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
+Este análisis se generó automáticamente el Thu Mar 20 22:29:47 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
 
 Para obtener recomendaciones detalladas sobre cómo resolver los problemas identificados, consulta los documentos específicos enlazados en cada recomendación o implementa las soluciones sugeridas en la sección de optimizaciones.

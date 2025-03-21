@@ -42,7 +42,31 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-    console.error('Error en la respuesta:', error.response?.status, error.message, originalRequest.url);
+    
+    if (error.response) {
+      console.error(`Error en la respuesta: ${error.response.status} ${error.message} ${originalRequest.url}`);
+      
+      // Mostrar más detalles sobre el error
+      console.error('Detalles del error:', {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+        headers: error.response.headers,
+        // Añadir el payload enviado para depuración
+        requestData: originalRequest.data ? JSON.parse(originalRequest.data) : null
+      });
+      
+      // Si el error tiene un cuerpo de respuesta con mensaje, mostrarlo
+      if (error.response.data && error.response.data.detail) {
+        console.error(`Mensaje de error del servidor: ${error.response.data.detail}`);
+      }
+    } else if (error.request) {
+      // La solicitud fue hecha pero no se recibió respuesta
+      console.error('Error: No se recibió respuesta del servidor', error.request);
+    } else {
+      // Algo ocurrió al configurar la solicitud
+      console.error('Error al configurar la solicitud:', error.message);
+    }
     
     // Si el error es 401 (no autorizado) y no hemos intentado refrescar el token
     if (error.response?.status === 401 && !originalRequest._retry) {

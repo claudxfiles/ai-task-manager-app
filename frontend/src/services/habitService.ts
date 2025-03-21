@@ -22,8 +22,27 @@ export const habitService = {
   
   // Crear un nuevo hábito
   createHabit: async (habit: HabitCreate): Promise<Habit> => {
-    const response = await apiClient.post('/api/v1/habits/', habit);
-    return response.data;
+    try {
+      // Formato simplificado de envío
+      const habitData = {
+        title: habit.title,
+        description: habit.description || null,
+        frequency: habit.frequency,
+        specific_days: habit.specific_days || null,
+        category: habit.category || null,
+        goal_value: habit.goal_value || 1,
+        is_active: true
+      };
+      
+      console.log('habitService - Enviando al backend:', JSON.stringify(habitData));
+      
+      const response = await apiClient.post('/api/v1/habits/', habitData);
+      console.log('habitService - Respuesta del backend:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear hábito:', error);
+      throw error;
+    }
   },
   
   // Actualizar un hábito existente
@@ -45,7 +64,16 @@ export const habitService = {
   
   // Registrar un nuevo log de hábito
   logHabit: async (logData: HabitLogCreate): Promise<HabitLog> => {
-    const response = await apiClient.post(`/api/v1/habits/${logData.habit_id}/logs/`, logData);
+    const logToSend = {
+      habit_id: logData.habit_id,
+      completed_date: logData.completed_date,
+      notes: logData.notes || null,
+      quality_rating: logData.quality_rating || null,
+      emotion: logData.emotion || null,
+      value: logData.value || null
+    };
+    
+    const response = await apiClient.post(`/api/v1/habits/${logData.habit_id}/logs/`, logToSend);
     return response.data;
   },
   

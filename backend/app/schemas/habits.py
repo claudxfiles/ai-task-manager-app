@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 from datetime import date, datetime
 from enum import Enum
 
@@ -15,12 +15,21 @@ class HabitCreate(BaseModel):
     title: str
     description: Optional[str] = None
     frequency: HabitFrequency
-    specific_days: Optional[List[int]] = None  # Para hábitos semanales: [0, 1, 2, 3, 4, 5, 6] (0 = lunes)
+    specific_days: Optional[Union[List[int], None]] = None  # Para hábitos semanales: [0, 1, 2, 3, 4, 5, 6] (0 = lunes)
     goal_value: Optional[int] = 1  # Por ejemplo, hacer 10 flexiones
     category: Optional[str] = None
     reminder_time: Optional[str] = None  # Formato "HH:MM"
     cue: Optional[str] = None  # La señal que inicia el hábito
     reward: Optional[str] = None  # La recompensa al completar
+    
+    class Config:
+        # Permitir conversiones de tipo extra
+        extra = "allow"
+        # Tratar nulos como None
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            date: lambda v: v.isoformat(),
+        }
 
 
 class HabitUpdate(BaseModel):

@@ -2,10 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Any, List, Optional
 from datetime import datetime, date, timedelta
 import uuid
+import logging
 
 from app.services.auth import get_current_user
 from app.schemas.user import User
+# Verificar qué imports se están usando
+# Comentaré el import original para ver cuál es
 from app.schemas.habits import Habit, HabitCreate, HabitUpdate, HabitLog, HabitLogCreate
+# from app.schemas.habit import Habit, HabitCreate, HabitUpdate, HabitLog, HabitLogCreate
 from app.db.database import get_supabase_client
 
 router = APIRouter()
@@ -44,9 +48,14 @@ async def create_habit(
     """
     Crea un nuevo hábito
     """
+    logger = logging.getLogger(__name__)
+    
     supabase = get_supabase_client()
     
     try:
+        # Loggear los datos recibidos
+        logger.info(f"Datos recibidos para crear hábito: {habit_in.dict()}")
+        
         # Crear un objeto con todos los campos necesarios
         habit_data = habit_in.dict()
         habit_id = str(uuid.uuid4())
@@ -64,16 +73,28 @@ async def create_habit(
             "total_completions": 0
         }
         
+        # Loggear los datos que se van a insertar
+        logger.info(f"Datos a insertar en la base de datos: {habit_db}")
+        
         response = supabase.table("habits").insert(habit_db).execute()
         
+        # Loggear la respuesta
+        logger.info(f"Respuesta de Supabase: {response.data}")
+        
         if not response.data:
+            logger.error("No se recibieron datos en la respuesta de Supabase")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al crear el hábito"
+                detail="Error al crear el hábito: No se recibieron datos"
             )
         
         return Habit(**response.data[0])
     except Exception as e:
+        # Loggear el error detallado
+        import traceback
+        logger.error(f"Error al crear el hábito: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear el hábito: {str(e)}"

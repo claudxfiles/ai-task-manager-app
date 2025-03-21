@@ -36,8 +36,9 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'specific_days'>('daily');
+  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
   const [category, setCategory] = useState('');
+  const [goalValue, setGoalValue] = useState(1);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +48,12 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
       description: description || undefined,
       frequency,
       category: category || undefined,
+      goal_value: goalValue,
+      is_active: true,
+      specific_days: null
     };
+    
+    console.log('Enviando hábito al backend:', JSON.stringify(newHabit));
     
     onCreateHabit(newHabit);
     resetForm();
@@ -58,6 +64,7 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
     setDescription('');
     setFrequency('daily');
     setCategory('');
+    setGoalValue(1);
   };
   
   return (
@@ -66,6 +73,9 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Crear nuevo hábito</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Completa el formulario para crear un nuevo hábito de seguimiento.
+            </p>
           </DialogHeader>
           
           <div className="grid gap-6 py-4">
@@ -102,7 +112,7 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
                 </Label>
                 <Select
                   value={frequency}
-                  onValueChange={(value: 'daily' | 'weekly' | 'specific_days') => setFrequency(value)}
+                  onValueChange={(value: 'daily' | 'weekly' | 'monthly' | 'custom') => setFrequency(value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona la frecuencia" />
@@ -111,7 +121,8 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
                     <SelectGroup>
                       <SelectItem value="daily">Diario</SelectItem>
                       <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="specific_days">Días específicos</SelectItem>
+                      <SelectItem value="monthly">Mensual</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
@@ -139,6 +150,20 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="goalValue" className="font-medium">
+                Valor Objetivo
+              </Label>
+              <Input
+                id="goalValue"
+                type="number"
+                min="1"
+                value={goalValue}
+                onChange={(e) => setGoalValue(parseInt(e.target.value) || 1)}
+                placeholder="Ej. 1 para completar una vez, 10 para ejercicios, etc."
+              />
             </div>
           </div>
           
