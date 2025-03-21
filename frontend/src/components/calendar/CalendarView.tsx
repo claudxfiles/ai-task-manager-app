@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Bug, RotateCw } from 'lucide-react';
@@ -71,6 +71,9 @@ export function CalendarView() {
   // Obtener eventos del calendario
   const { data: calendarEvents = [], isLoading, isError, error, refetch } = useCalendarEvents(startDate, endDate);
   
+  // Referencia para controlar el renderizado inicial
+  const isInitialRender = useRef(true);
+  
   // Efecto para mostrar mensaje de error si ocurre
   useEffect(() => {
     if (isError && error instanceof Error) {
@@ -106,12 +109,22 @@ export function CalendarView() {
   
   // Efecto para depurar eventos del calendario
   useEffect(() => {
-    if (calendarEvents.length > 0) {
-      console.log(`Eventos cargados (${calendarEvents.length}) para el rango:`, 
-        format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
-    } else if (!isLoading && !isError) {
-      console.log('No se encontraron eventos para el rango:', 
-        format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
+    // Usar un flag de renderizado para evitar logs duplicados
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+    
+    // Solo mostrar logs cuando no está cargando y no hay error
+    if (!isLoading && !isError) {
+      if (calendarEvents.length > 0) {
+        console.log(`Eventos cargados (${calendarEvents.length}) para el rango:`, 
+          format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
+      } else {
+        // Evitar spam de logs "No se encontraron eventos"
+        console.debug('No se encontraron eventos para el rango:', 
+          format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
+      }
     }
   }, [calendarEvents, startDate, endDate, isLoading, isError]);
   

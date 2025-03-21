@@ -137,7 +137,8 @@ async function fetchUserMetadataFromBackend(userId: string): Promise<GoogleCalen
     const data = await response.json();
     
     if (data?.google_token) {
-      console.log('Credenciales de Google Calendar obtenidas desde backend');
+      // Usar console.debug para información menos intrusiva
+      console.debug('Credenciales de Google Calendar obtenidas desde backend');
       return {
         access_token: data.google_token.access_token,
         refresh_token: data.google_token.refresh_token,
@@ -215,7 +216,8 @@ export async function getCalendarEvents(userId: string, startDate: Date, endDate
     apiUrl.searchParams.append('timeMin', timeMin);
     apiUrl.searchParams.append('timeMax', timeMax);
     
-    console.log('GET', apiUrl.toString());
+    // Usar console.debug para reducir el ruido en la consola
+    console.debug('GET', apiUrl.toString());
     
     // Realizar la solicitud a nuestra API
     const response = await fetch(apiUrl);

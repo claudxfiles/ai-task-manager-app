@@ -247,34 +247,36 @@ export function useGoogleCalendarStatus() {
       calendarStatus.isTokenExpired !== prevStatusRef.current.isTokenExpired ||
       currentExpiryStr !== prevStatusRef.current.expiryDate;
     
-    // Generar un ID único para este componente si no existe
-    if (!prevStatusRef.current.componentId) {
-      prevStatusRef.current.componentId = Math.random().toString(36).substring(2, 8);
-    }
-    
-    // Solo mostrar logs si el estado ha cambiado realmente
+    // Solo generar logs cuando hay un cambio real de estado
     if (hasChanged) {
-      // Usar el ID del componente como parte del mensaje para distinguir diferentes instancias
-      console.log(`[CalendarStatus:${prevStatusRef.current.componentId}] Estado de conexión con Google Calendar:`, 
-        calendarStatus.isConnected ? 'Conectado' : 'No conectado',
-        calendarStatus.isConnected && calendarStatus.isTokenExpired ? '(Token expirado)' : ''
-      );
-      
-      if (calendarStatus.expiryDate) {
-        console.log(`[CalendarStatus:${prevStatusRef.current.componentId}] Token Google disponible, expira:`, 
-          calendarStatus.expiryDate.toLocaleString()
-        );
-      }
-      
-      // Actualizar referencia al estado previo
+      // Actualizar la referencia para evitar logs duplicados
       prevStatusRef.current = {
-        ...prevStatusRef.current,
         isConnected: calendarStatus.isConnected,
         isTokenExpired: calendarStatus.isTokenExpired,
-        expiryDate: currentExpiryStr
+        expiryDate: currentExpiryStr,
+        componentId: prevStatusRef.current.componentId
       };
+      
+      // Registrar el estado solo cuando cambia
+      if (calendarStatus.isConnected) {
+        console.log(
+          `[CalendarStatus:${prevStatusRef.current.componentId}] Estado de conexión con Google Calendar: Conectado`
+        );
+        
+        if (calendarStatus.expiryDate) {
+          console.log(
+            `[CalendarStatus:${prevStatusRef.current.componentId}] Token Google disponible, expira: ${calendarStatus.expiryDate.toLocaleString()}`
+          );
+        }
+      } else {
+        console.log(
+          `[CalendarStatus:${prevStatusRef.current.componentId}] Estado de conexión con Google Calendar: ${
+            !statusChecked ? 'Verificando...' : 'No conectado'
+          }`
+        );
+      }
     }
-  }, [session, calendarStatus]);
+  }, [calendarStatus, session, statusChecked]);
   
   return {
     isConnected: calendarStatus.isConnected,
