@@ -1,4 +1,4 @@
-import { createClientComponent } from './supabase';
+import { getSupabaseClient } from './supabase';
 import { toast } from '@/components/ui/use-toast';
 
 // Tipos
@@ -121,7 +121,7 @@ export const expenseCategories = [
 // Funciones para transacciones
 export const createTransaction = async (transaction: Transaction): Promise<Transaction | null> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     // Asegurar que tiene un user_id, si no está usando RLS
     if (!transaction.user_id) {
@@ -167,7 +167,7 @@ export const getTransactions = async (
   }
 ): Promise<Transaction[]> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     let query = supabase
       .from('transactions')
@@ -211,7 +211,7 @@ export const getTransactions = async (
 
 export const updateTransaction = async (id: string, updates: Partial<Transaction>): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('transactions')
@@ -242,7 +242,7 @@ export const updateTransaction = async (id: string, updates: Partial<Transaction
 
 export const deleteTransaction = async (id: string): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('transactions')
@@ -274,7 +274,7 @@ export const deleteTransaction = async (id: string): Promise<boolean> => {
 // Funciones para metas financieras
 export const createFinancialGoal = async (goal: FinancialGoal): Promise<FinancialGoal | null> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     // Asegurar que tiene un user_id, si no está usando RLS
     if (!goal.user_id) {
@@ -312,7 +312,7 @@ export const createFinancialGoal = async (goal: FinancialGoal): Promise<Financia
 
 export const getFinancialGoals = async (): Promise<FinancialGoal[]> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { data, error } = await supabase
       .from('financial_goals')
@@ -333,7 +333,7 @@ export const getFinancialGoals = async (): Promise<FinancialGoal[]> => {
 
 export const updateFinancialGoal = async (id: string, updates: Partial<FinancialGoal>): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('financial_goals')
@@ -364,7 +364,7 @@ export const updateFinancialGoal = async (id: string, updates: Partial<Financial
 
 export const deleteFinancialGoal = async (id: string): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('financial_goals')
@@ -396,7 +396,7 @@ export const deleteFinancialGoal = async (id: string): Promise<boolean> => {
 // Funciones para subscripciones
 export const createSubscription = async (subscription: Subscription): Promise<Subscription | null> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     // Asegurar que tiene un user_id, si no está usando RLS
     if (!subscription.user_id) {
@@ -434,7 +434,7 @@ export const createSubscription = async (subscription: Subscription): Promise<Su
 
 export const getSubscriptions = async (): Promise<Subscription[]> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { data, error } = await supabase
       .from('subscriptions_tracker')
@@ -455,7 +455,7 @@ export const getSubscriptions = async (): Promise<Subscription[]> => {
 
 export const updateSubscription = async (id: string, updates: Partial<Subscription>): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('subscriptions_tracker')
@@ -486,7 +486,7 @@ export const updateSubscription = async (id: string, updates: Partial<Subscripti
 
 export const deleteSubscription = async (id: string): Promise<boolean> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     const { error } = await supabase
       .from('subscriptions_tracker')
@@ -520,7 +520,7 @@ export const getFinancialSummary = async (
   period: 'month' | 'year' = 'month'
 ): Promise<FinancialSummary | null> => {
   try {
-    const supabase = createClientComponent();
+    const supabase = getSupabaseClient();
     
     // Determinar fechas para el periodo
     const now = new Date();

@@ -17,22 +17,27 @@ let supabaseClientInstance: ReturnType<typeof createClientComponentClient> | nul
 
 // Implementación del patrón singleton para el cliente de componentes
 export const createClientComponent = () => {
+  // En el lado del servidor (durante SSR), siempre crear una nueva instancia
   if (typeof window === 'undefined') {
-    // En el lado del servidor, siempre crear una nueva instancia (se ejecutará solo durante SSR)
     return createClientComponentClient();
   }
   
-  // En el lado del cliente, reutilizar la instancia existente o crear una si es la primera vez
+  // En el lado del cliente, crear una única instancia si no existe
   if (!supabaseClientInstance) {
     supabaseClientInstance = createClientComponentClient();
-    console.log('Creando instancia única de GoTrueClient');
+    // Usar un console.debug en lugar de log para reducir ruido en la consola
+    console.debug('Inicializando cliente de Supabase (singleton)');
   }
   
   return supabaseClientInstance;
 };
 
-// Exportar la instancia del cliente para componentes (usando el mismo singleton)
-export const supabaseClient = createClientComponent();
+// Exportar la instancia del cliente para componentes
+// No inicializar directamente aquí para evitar ejecución en importación
+export const getSupabaseClient = () => createClientComponent();
+
+// Método para uso conveniente cuando sabemos que estamos en el cliente
+export const supabaseClient = typeof window !== 'undefined' ? createClientComponent() : null;
 
 // Tipos para las tablas de Supabase
 export type Tables = {

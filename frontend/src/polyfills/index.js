@@ -7,31 +7,28 @@ require('./process-patch');
 // Cargar polyfills de Node.js core
 require('./node-core-modules');
 
-// Aplicar parche a require para manejar importaciones node:
-// (esto debe hacerse antes de cualquier otro require)
-try {
-  require('./patch-require');
-  console.log('Parche de require aplicado correctamente');
-} catch (e) {
-  console.error('Error al aplicar parche de require:', e);
-}
+// Importar la función safeRequire pero sin modificar el require global
+const safeRequire = require('./patch-require');
+console.log('SafeRequire disponible para módulos node: URLs');
 
-// Registrar polyfills específicos
+// Registrar polyfills específicos usando imports explícitos
+// en lugar de intentar parchar el require global
 global.nodeEvents = require('./node-events');
 global.http2 = require('./http2');
 global.nodeProcess = require('./node-process');
 
-// Reemplazar directamente las importaciones de node:
+// Proporcionar un helper para importaciones node: sin modificar el require global
 if (typeof window !== 'undefined') {
-  window.require = (path) => {
-    if (path === 'node:events') return require('./node-events');
-    if (path === 'node:process') return require('./node-process');
-    if (path === 'node:stream') return require('stream-browserify');
-    if (path === 'node:buffer') return require('buffer');
-    if (path === 'node:util') return require('util');
-    if (path === 'node:path') return require('path-browserify');
-    if (path === 'http2') return require('./http2');
-    return require(path);
+  // En lugar de sobrescribir window.require, añadimos un helper
+  window.nodeModules = {
+    // Mapa de módulos comunes que pueden ser necesarios
+    events: require('./node-events'),
+    process: require('./node-process'),
+    stream: require('stream-browserify'),
+    buffer: require('buffer'),
+    util: require('util'),
+    path: require('path-browserify'),
+    http2: require('./http2')
   };
 }
 
