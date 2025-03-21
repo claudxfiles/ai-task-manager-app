@@ -1,299 +1,243 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 import { 
-  CheckCircle, 
-  ArrowRight, 
-  BarChart2, 
+  CheckSquare, 
   Calendar, 
   DollarSign, 
   Dumbbell, 
-  MessageSquare, 
-  Target 
+  TrendingUp, 
+  Brain, 
+  Clock, 
+  ArrowRight,
+  Target,
+  CheckCircle2
 } from 'lucide-react';
+import { Navbar } from '@/components/landing/Navbar';
+import { Hero } from '@/components/landing/hero/Hero';
+import { FeatureSection } from '@/components/landing/features/FeatureSection';
+import { TestimonialsSection } from '@/components/landing/testimonials/TestimonialsSection';
+import { PricingSection } from '@/components/landing/pricing/PricingSection';
+import { FaqSection } from '@/components/landing/faq/FaqSection';
+import { CtaSection } from '@/components/landing/cta/CtaSection';
+import { Footer } from '@/components/landing/footer/Footer';
 
 export default function Home() {
   return (
-    <div className="bg-white dark:bg-gray-900">
-      {/* Header/Navbar */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">SoulDream</span>
-            </div>
-            <nav className="hidden md:flex space-x-10">
-              <a href="#features" className="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                Características
-              </a>
-              <a href="#pricing" className="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                Precios
-              </a>
-              <a href="#testimonials" className="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                Testimonios
-              </a>
-              <a href="#faq" className="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-                FAQ
-              </a>
-            </nav>
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/auth/login" 
-                className="text-base font-medium text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-              >
-                Iniciar sesión
-              </Link>
-              <Link 
-                href="/auth/register" 
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Registrarse
-              </Link>
-            </div>
+    <div className="flex flex-col min-h-screen">
+      {/* Navbar */}
+      <header className="bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold text-indigo-400">SoulDream</span>
+          </div>
+          <nav className="hidden md:flex space-x-10">
+            <Link href="#caracteristicas" className="hover:text-indigo-400 transition-colors">
+              Características
+            </Link>
+            <Link href="#precios" className="hover:text-indigo-400 transition-colors">
+              Precios
+            </Link>
+            <Link href="#testimonios" className="hover:text-indigo-400 transition-colors">
+              Testimonios
+            </Link>
+            <Link href="#faq" className="hover:text-indigo-400 transition-colors">
+              FAQ
+            </Link>
+          </nav>
+          <div className="flex items-center space-x-4">
+            <Link href="/auth/login" className="hover:text-indigo-400 transition-colors">
+              Iniciar sesión
+            </Link>
+            <Link href="/auth/register" className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md transition-colors">
+              Registrarse
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-24 bg-gradient-to-b from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
-              <span className="block">Tu vida organizada en</span>
-              <span className="block text-indigo-600 dark:text-indigo-400">una sola plataforma</span>
-            </h1>
-            <p className="mt-3 max-w-md mx-auto text-base text-gray-500 dark:text-gray-400 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-              Gestiona tus tareas, hábitos, finanzas, fitness y más con la ayuda de inteligencia artificial. 
-              Todo en un solo lugar para optimizar tu productividad y bienestar.
-            </p>
-            <div className="mt-10 sm:flex sm:justify-center">
-              <div className="rounded-md shadow">
-                <Link 
-                  href="/auth/register" 
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10"
-                >
-                  Comenzar gratis
+      <section className="bg-gray-900 text-white py-20">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+            <div className="lg:w-1/2">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+                Tu vida organizada en 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400"> una sola plataforma</span>
+              </h1>
+              <p className="text-xl mb-8 text-gray-300">
+                Gestiona tus metas, hábitos, finanzas y fitness con ayuda de inteligencia artificial. Optimiza tu productividad y bienestar con una herramienta todo en uno.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/auth/register" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md text-center font-medium transition-colors flex items-center justify-center">
+                  Comenzar gratis <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+                <Link href="#caracteristicas" className="border border-gray-600 hover:border-gray-400 text-white px-6 py-3 rounded-md text-center font-medium transition-colors">
+                  Ver funcionalidades
                 </Link>
               </div>
-              <div className="mt-3 sm:mt-0 sm:ml-3">
-                <a 
-                  href="#features" 
-                  className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:text-indigo-400 dark:hover:bg-gray-700 md:py-4 md:text-lg md:px-10"
-                >
-                  Conocer más
-                </a>
+              <div className="flex items-center mt-6 text-sm text-gray-400 space-x-6">
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-indigo-400 mr-2" />
+                  <span>Sin tarjeta de crédito</span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-indigo-400 mr-2" />
+                  <span>14 días prueba completa</span>
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle2 className="h-4 w-4 text-indigo-400 mr-2" />
+                  <span>Cancelación fácil</span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          {/* Hero Image */}
-          <div className="mt-16 relative">
-            <div className="max-w-4xl mx-auto">
-              <div className="relative shadow-xl rounded-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-emerald-600 opacity-10"></div>
-                <img 
-                  className="relative rounded-2xl border border-gray-200 dark:border-gray-700" 
-                  src="https://placehold.co/1200x600/f8fafc/4f46e5?text=SoulDream+Dashboard&font=montserrat" 
-                  alt="SoulDream Dashboard" 
-                />
+            
+            {/* Dashboard Preview */}
+            <div className="lg:w-1/2 relative">
+              <div className="bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-700">
+                <div className="p-4 bg-gray-800 border-b border-gray-700 flex items-center justify-between">
+                  <span className="text-lg font-semibold text-indigo-400">SoulDream Dashboard</span>
+                  <div className="flex space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs text-gray-400">HÁBITO DESTACADO</p>
+                          <h3 className="text-md font-bold text-white mt-1">Meditación</h3>
+                          <div className="flex items-center mt-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                            <p className="text-xs text-gray-300">7 días consecutivos</p>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-green-900/30 rounded-lg">
+                          <TrendingUp className="h-4 w-4 text-green-400" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-700 p-4 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-xs text-gray-400">FINANZAS</p>
+                          <h3 className="text-md font-bold text-white mt-1">$3,650</h3>
+                          <div className="flex items-center mt-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                            <p className="text-xs text-green-400">+15% este mes</p>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-amber-900/30 rounded-lg">
+                          <DollarSign className="h-4 w-4 text-amber-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-700 p-4 rounded-lg mb-4">
+                    <div className="flex items-center mb-3">
+                      <CheckSquare className="h-4 w-4 text-indigo-400 mr-2" />
+                      <h3 className="text-sm font-semibold text-white">Tareas pendientes</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center p-2 bg-gray-600/50 rounded">
+                        <div className="w-2 h-2 rounded-full bg-red-500 mr-3"></div>
+                        <p className="text-xs text-white">Completar informe mensual</p>
+                      </div>
+                      <div className="flex items-center p-2 bg-gray-600/50 rounded">
+                        <div className="w-2 h-2 rounded-full bg-yellow-500 mr-3"></div>
+                        <p className="text-xs text-white">Reunión con cliente</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <div className="flex items-center mb-3">
+                      <Target className="h-4 w-4 text-indigo-400 mr-2" />
+                      <h3 className="text-sm font-semibold text-white">Metas en progreso</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-xs text-white">Comprar moto</p>
+                          <span className="text-xs text-gray-400">35%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-1.5">
+                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '35%' }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <p className="text-xs text-white">Aprender desarrollo web</p>
+                          <span className="text-xs text-gray-400">60%</span>
+                        </div>
+                        <div className="w-full bg-gray-600 rounded-full h-1.5">
+                          <div className="bg-indigo-500 h-1.5 rounded-full" style={{ width: '60%' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Notifications */}
+                  <div className="absolute top-32 right-4 max-w-[220px]">
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg mb-3">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mr-2">
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-white">Hábito completado</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            ¡Has mantenido tu racha por 7 días consecutivos!
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center mr-2">
+                          <span className="text-purple-500 text-xs">🔹</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-white">Finanzas</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            Has ahorrado un 15% más que el mes pasado
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              
+              {/* Decorative elements */}
+              <div className="absolute -top-4 -left-4 w-20 h-20 bg-indigo-500/20 rounded-full blur-xl"></div>
+              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-cyan-500/20 rounded-full blur-xl"></div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-base font-semibold text-indigo-600 dark:text-indigo-400 tracking-wide uppercase">Características</h2>
-            <p className="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
-              Todo lo que necesitas para una vida organizada
-            </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-400 mx-auto">
-              SoulDream integra todas las herramientas que necesitas para gestionar tu vida diaria de manera eficiente.
-            </p>
-          </div>
-
-          <div className="mt-16">
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Feature 1 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-md shadow-lg">
-                        <CheckCircle className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Gestión de tareas</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Organiza tus tareas con un sistema Kanban intuitivo. Establece prioridades, fechas límite y categorías para mantener todo bajo control.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-emerald-600 rounded-md shadow-lg">
-                        <Target className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Seguimiento de hábitos</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Desarrolla hábitos positivos con nuestro sistema de seguimiento. Mantén rachas, recibe recordatorios y visualiza tu progreso.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-amber-600 rounded-md shadow-lg">
-                        <DollarSign className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Gestión financiera</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Controla tus finanzas con herramientas de seguimiento de gastos, presupuestos y metas de ahorro personalizadas.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 4 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-indigo-600 rounded-md shadow-lg">
-                        <Dumbbell className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Seguimiento fitness</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Registra tus entrenamientos, sigue tu progreso y recibe rutinas personalizadas para alcanzar tus objetivos de salud.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 5 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-emerald-600 rounded-md shadow-lg">
-                        <Calendar className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Calendario integrado</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Visualiza todos tus eventos, tareas y hábitos en un calendario unificado. Sincroniza con Google Calendar para mayor comodidad.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Feature 6 */}
-              <div className="pt-6">
-                <div className="flow-root bg-gray-50 dark:bg-gray-800 rounded-lg px-6 pb-8">
-                  <div className="-mt-6">
-                    <div>
-                      <span className="inline-flex items-center justify-center p-3 bg-amber-600 rounded-md shadow-lg">
-                        <MessageSquare className="h-6 w-6 text-white" />
-                      </span>
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 dark:text-white tracking-tight">Asistente IA</h3>
-                    <p className="mt-5 text-base text-gray-500 dark:text-gray-400">
-                      Recibe recomendaciones personalizadas, respuestas a tus preguntas y ayuda para optimizar tu productividad con nuestro asistente IA.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <section id="caracteristicas" className="py-20 bg-white dark:bg-gray-800">
+        {/* Features content */}
       </section>
 
-      {/* CTA Section */}
-      <section className="bg-indigo-600 dark:bg-indigo-800">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            <span className="block">¿Listo para transformar tu vida?</span>
-            <span className="block text-indigo-200">Comienza a usar SoulDream hoy mismo.</span>
-          </h2>
-          <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
-            <div className="inline-flex rounded-md shadow">
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50"
-              >
-                Comenzar gratis
-              </Link>
-            </div>
-            <div className="ml-3 inline-flex rounded-md shadow">
-              <Link
-                href="/auth/login"
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-700 hover:bg-indigo-800"
-              >
-                Iniciar sesión
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-white dark:bg-gray-900">
-        <div className="max-w-7xl mx-auto py-12 px-4 overflow-hidden sm:px-6 lg:px-8">
-          <nav className="-mx-5 -my-2 flex flex-wrap justify-center" aria-label="Footer">
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Acerca de
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Blog
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Empleos
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Prensa
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Privacidad
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Términos
-              </a>
-            </div>
-            <div className="px-5 py-2">
-              <a href="#" className="text-base text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                Contacto
-              </a>
-            </div>
-          </nav>
-          <p className="mt-8 text-center text-base text-gray-500 dark:text-gray-400">
-            &copy; 2023 SoulDream. Todos los derechos reservados.
-          </p>
-        </div>
-      </footer>
+      <main>
+        <FeatureSection />
+        <TestimonialsSection />
+        <PricingSection />
+        <FaqSection />
+        <CtaSection />
+      </main>
+      <Footer />
     </div>
   );
 }

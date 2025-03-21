@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { Goal, GoalStep } from '@/store/goals/useGoalsStore';
 import { useGoals } from '@/hooks/goals/useGoals';

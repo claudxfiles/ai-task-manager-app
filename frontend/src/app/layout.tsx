@@ -6,6 +6,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { Toaster } from "@/components/ui/toaster"
+import { ThemeScript } from './ThemeScript';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className={inter.className}>
         <Providers>
           {children}

@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from 'react';
 import { useGoals } from '@/hooks/goals/useGoals';
 import { useUser } from '@/hooks/auth/useUser';

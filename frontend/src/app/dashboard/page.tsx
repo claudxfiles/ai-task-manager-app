@@ -14,7 +14,8 @@ import {
   PieChart,
   Receipt,
   Home,
-  Calculator
+  Calculator,
+  CheckCircle2
 } from 'lucide-react';
 import { GoalsSummary } from '@/components/goals/GoalsSummary';
 import { Goal } from '@/components/goals/GoalsDashboard';
@@ -141,6 +142,84 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <div className="p-4">
+        {/* Hero Dashboard Section */}
+        <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-xl p-6 mb-8 shadow-sm">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">SoulDream Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">Bienvenido de nuevo. Aquí está el resumen de tu progreso.</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm px-4 py-2 mt-4 md:mt-0">
+              <p className="text-sm text-gray-500 dark:text-gray-400">{format(new Date(), 'EEEE, d MMMM yyyy', { locale: es })}</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Progress overview cards */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm flex flex-col">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">PROGRESO DE METAS</p>
+                  <h3 className="text-xl font-bold mt-1">68%</h3>
+                </div>
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                  <Target className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-4">
+                <div className="bg-indigo-600 dark:bg-indigo-500 h-2 rounded-full" style={{ width: '68%' }}></div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm flex flex-col">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">HÁBITO DESTACADO</p>
+                  <h3 className="text-lg font-bold mt-1">Meditación</h3>
+                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/50 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <p className="text-sm text-gray-600 dark:text-gray-300">7 días consecutivos</p>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">FINANZAS</p>
+                  <h3 className="text-xl font-bold mt-1">$3,650</h3>
+                </div>
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <p className="text-sm text-green-600 dark:text-green-400">+15% este mes</p>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">PRÓXIMO EVENTO</p>
+                  <h3 className="text-lg font-bold mt-1">Reunión equipo</h3>
+                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-center">
+                <p className="text-sm text-gray-600 dark:text-gray-300">Hoy - 10:00 AM</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dashboard</h1>
         
         {/* Estadísticas principales */}
@@ -284,6 +363,21 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+              
+              {/* Mensaje de ahorro */}
+              <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center mr-3">
+                    <span className="text-white text-xs">🔹</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">Finanzas</p>
+                    <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      Has ahorrado un 15% más que el mes pasado
+                    </p>
+                  </div>
+                </div>
+              </div>
             </Card>
             
             {/* Hábitos */}
@@ -310,6 +404,21 @@ export default function DashboardPage() {
                     <p className="ml-4 text-xs font-medium text-gray-500 dark:text-gray-400">{habit.progress}%</p>
                   </div>
                 ))}
+              </div>
+              
+              {/* Notificación de hábito completado */}
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center mr-3">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Hábito completado</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      ¡Has mantenido tu racha por 7 días consecutivos!
+                    </p>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>

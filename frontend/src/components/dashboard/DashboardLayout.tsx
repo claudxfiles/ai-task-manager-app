@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -287,7 +289,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
         
         {/* Content */}
-        <main className="flex-1 p-4 overflow-auto bg-gray-50 dark:bg-gray-900">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900">
           {children}
         </main>
       </div>

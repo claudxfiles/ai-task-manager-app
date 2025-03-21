@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Bell, User, LogOut } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/app/providers';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -74,6 +76,14 @@ export default function Navbar() {
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             <button
+              onClick={toggleTheme}
+              className="p-1 mr-2 rounded-full text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              aria-label="Cambiar tema"
+            >
+              {theme === 'dark' ? <Sun className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+            </button>
+            
+            <button
               type="button"
               className="p-1 rounded-full text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
@@ -103,6 +113,14 @@ export default function Navbar() {
             </div>
           </div>
           <div className="-mr-2 flex items-center sm:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-1 mr-2 rounded-full text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none"
+              aria-label="Cambiar tema"
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          
             <button
               onClick={toggleMenu}
               type="button"
