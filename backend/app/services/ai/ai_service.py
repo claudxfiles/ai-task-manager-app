@@ -55,7 +55,9 @@ class OpenRouterService:
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "HTTP-Referer": self.referer,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "X-Title": "SoulDream AI",
+            "OpenRouter-Providers": "Groq,Fireworks"
         }
         
         async with aiohttp.ClientSession() as session:
@@ -99,7 +101,9 @@ class OpenRouterService:
             "Authorization": f"Bearer {self.api_key}",
             "HTTP-Referer": self.referer,
             "Content-Type": "application/json",
-            "Accept": "text/event-stream"
+            "Accept": "text/event-stream",
+            "X-Title": "SoulDream AI",
+            "OpenRouter-Providers": "Groq,Fireworks"
         }
         
         async with aiohttp.ClientSession() as session:

@@ -106,10 +106,22 @@ export const aiService = {
    */
   async generatePersonalizedPlan(request: PersonalizedPlanRequest): Promise<any> {
     try {
+      console.log('Enviando solicitud de plan personalizado:', request);
       const response = await api.post('/api/v1/ai/generate-personalized-plan', request);
+      
+      if (!response.data) {
+        throw new Error('No se recibió una respuesta válida del servidor');
+      }
+      
+      console.log('Respuesta del servidor:', response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al generar plan personalizado:', error);
+      if (error.response) {
+        console.error('Detalles del error:', error.response.data);
+      } else if (error.request) {
+        console.error('No se recibió respuesta del servidor. Verifique que el backend esté en ejecución.');
+      }
       throw error;
     }
   },

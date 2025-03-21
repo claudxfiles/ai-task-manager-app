@@ -27,6 +27,8 @@ import { LearningAdaptation } from './LearningAdaptation';
 import { Goal } from '@/types/goal';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 // Tipos para los mensajes
 interface Message {
@@ -52,7 +54,7 @@ const ChatMessage = ({ message }: { message: Message }) => {
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
         <div className={`text-xs mt-1 ${isUser ? 'text-indigo-200' : 'text-gray-500 dark:text-gray-400'}`}>
-          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {format(message.timestamp, 'hh:mm a', { locale: es })}
           {message.status === 'sending' && ' · Enviando...'}
           {message.status === 'error' && ' · Error al enviar'}
         </div>

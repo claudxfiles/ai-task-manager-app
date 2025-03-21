@@ -37,6 +37,7 @@ class AISettings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "allow"  # Permitir variables de entorno adicionales
 
 # Instancia global de configuración
 ai_settings = AISettings()

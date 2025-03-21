@@ -1,15 +1,23 @@
 'use client';
 
-import React from 'react';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { AiChatInterface } from '@/components/ai-chat/AiChatInterface';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
-export default function AiChatPage() {
+export default function AIChatRedirect() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Redireccionar a la nueva página de Asistente IA
+    router.replace('/dashboard/ai-assistant');
+  }, [router]);
+  
   return (
-    <DashboardLayout>
-      <div className="h-[calc(100vh-10rem)]">
-        <AiChatInterface />
+    <div className="flex h-[70vh] w-full items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="mt-4 text-muted-foreground">Redirigiendo al Asistente IA...</p>
       </div>
-    </DashboardLayout>
+    </div>
   );
 } 

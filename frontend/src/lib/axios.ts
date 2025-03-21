@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { toast } from '@/components/ui/use-toast';
+import { createClientComponent } from './supabase';
 
 // Crear una instancia de axios con la configuración base
 export const api = axios.create({
@@ -11,16 +12,23 @@ export const api = axios.create({
 
 // Interceptor para incluir el token de autenticación en cada petición
 api.interceptors.request.use(
-  (config) => {
-    // Obtener el token de sesión del localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    
-    // Si hay un token, añadirlo a los headers
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      // Obtener el token de sesión de Supabase
+      const supabase = createClientComponent();
+      const { data } = await supabase.auth.getSession();
+      const session = data.session;
+      
+      // Si hay un token, añadirlo a los headers
+      if (session) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+      
+      return config;
+    } catch (error) {
+      console.error('Error obteniendo el token de sesión:', error);
+      return config;
     }
-    
-    return config;
   },
   (error) => {
     return Promise.reject(error);
@@ -47,7 +55,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Redirigir a la página de login si no está autenticado
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
         window.location.href = '/auth/login';
       }
     }

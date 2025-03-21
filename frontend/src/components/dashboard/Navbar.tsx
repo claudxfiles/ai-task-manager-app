@@ -61,14 +61,14 @@ export default function Navbar() {
                 Finanzas
               </Link>
               <Link
-                href="/dashboard/ai-chat"
+                href="/dashboard/ai-assistant"
                 className={`${
-                  pathname === '/dashboard/ai-chat'
+                  pathname === '/dashboard/ai-assistant'
                     ? 'border-indigo-500 text-gray-900 dark:text-white'
                     : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-700'
                 } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
               >
-                AI Chat
+                Asistente IA
               </Link>
             </div>
           </div>
@@ -150,14 +150,14 @@ export default function Navbar() {
               Finanzas
             </Link>
             <Link
-              href="/dashboard/ai-chat"
+              href="/dashboard/ai-assistant"
               className={`${
-                pathname === '/dashboard/ai-chat'
+                pathname === '/dashboard/ai-assistant'
                   ? 'bg-indigo-50 dark:bg-indigo-900 border-indigo-500 text-indigo-700 dark:text-indigo-300'
                   : 'border-transparent text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200'
               } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
             >
-              AI Chat
+              Asistente IA
             </Link>
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
