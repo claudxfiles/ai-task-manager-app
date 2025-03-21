@@ -12,6 +12,7 @@ interface HabitsListProps {
   isLoading: boolean;
   error?: any;
   onComplete: (params: { habitId: string }) => void;
+  onDelete?: (habitId: string) => void;
 }
 
 export const HabitsList: React.FC<HabitsListProps> = ({
@@ -19,6 +20,7 @@ export const HabitsList: React.FC<HabitsListProps> = ({
   isLoading,
   error,
   onComplete,
+  onDelete,
 }) => {
   // Estado de carga
   if (isLoading) {
@@ -77,6 +79,7 @@ export const HabitsList: React.FC<HabitsListProps> = ({
           key={habit.id}
           habit={habit}
           onComplete={() => onComplete({ habitId: habit.id })}
+          onDelete={onDelete}
         />
       ))}
     </div>

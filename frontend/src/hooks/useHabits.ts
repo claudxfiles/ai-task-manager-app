@@ -10,7 +10,7 @@ import {
   calculateHabitStatistics
 } from '@/lib/habits';
 import { Habit, HabitCreate, HabitUpdate, HabitWithLogsAndProgress } from '@/types/habit';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { habitService } from '@/services/habitService';
 import { HabitLog, HabitLogCreate } from '@/types/habit';
 
@@ -21,8 +21,37 @@ export const useHabits = (category?: string) => {
   // Obtener todos los hábitos
   const { data: allHabits, isLoading, error, refetch } = useQuery({
     queryKey: ['habits'],
-    queryFn: () => habitService.getHabits(),
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    queryFn: async () => {
+      const habits = await habitService.getHabits();
+      
+      // Verificar si cada hábito ha sido completado hoy
+      const habitsWithStatus = await Promise.all(
+        habits.map(async (habit) => {
+          try {
+            const logs = await habitService.getHabitLogs(habit.id);
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            const isCompletedToday = logs.some(log => 
+              log.completed_date.split('T')[0] === today
+            );
+            
+            return {
+              ...habit,
+              isCompletedToday
+            };
+          } catch (error) {
+            console.error(`Error al verificar estado del hábito ${habit.id}:`, error);
+            return {
+              ...habit,
+              isCompletedToday: false
+            };
+          }
+        })
+      );
+      
+      return habitsWithStatus;
+    },
+    staleTime: 0, // Disminuir el tiempo de caché para asegurar datos frescos
   });
   
   // Filtrar por categoría si es necesario
@@ -34,9 +63,33 @@ export const useHabits = (category?: string) => {
   const createHabitMutation = useMutation({
     mutationFn: (habit: HabitCreate) => habitService.createHabit(habit),
     onSuccess: () => {
+      // Invalidar la caché inmediatamente
       queryClient.invalidateQueries({ queryKey: ['habits'] });
+      // Forzar un refetch inmediato, aumentando el tiempo de espera y asegurando que no use caché
+      queryClient.resetQueries({ queryKey: ['habits'] });
+      
+      // Ejecución múltiple de refetch para asegurar que obtenemos los datos
+      setTimeout(() => {
+        refetch().then(() => {
+          console.log('Primer refetch completado');
+          // Si el primer refetch no trae datos, intentarlo nuevamente
+          setTimeout(() => {
+            queryClient.resetQueries({ queryKey: ['habits'] });
+            refetch().then(() => console.log('Segundo refetch completado'));
+          }, 1000);
+        });
+        console.log('Caché resetada y refetch ejecutado después de crear hábito');
+      }, 500);
     },
+    onError: (error) => {
+      console.error('Error al crear hábito en mutation:', error);
+    }
   });
+  
+  // Efecto para actualizar los datos cuando se monta el componente
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   
   // Mutación para actualizar un hábito
   const updateHabitMutation = useMutation({
@@ -44,6 +97,7 @@ export const useHabits = (category?: string) => {
       habitService.updateHabit({ id, ...rest }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
+      setTimeout(() => refetch(), 300); 
     },
   });
   
@@ -52,6 +106,7 @@ export const useHabits = (category?: string) => {
     mutationFn: (habitId: string) => habitService.deleteHabit(habitId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
+      setTimeout(() => refetch(), 300);
     },
   });
   
@@ -67,6 +122,7 @@ export const useHabits = (category?: string) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       queryClient.invalidateQueries({ queryKey: ['habitLogs'] });
+      setTimeout(() => refetch(), 300);
     },
   });
   
@@ -113,7 +169,7 @@ export const useHabitDetails = (habitId: string) => {
   // Calcular estadísticas si tenemos tanto el hábito como los registros
   const habitWithStats: HabitWithLogsAndProgress | undefined = 
     habit && logs 
-      ? calculateHabitStatistics(habit, logs) 
+      ? calculateHabitStatistics([habit]) 
       : undefined;
   
   // Mutación para marcar un hábito como completado
@@ -124,7 +180,7 @@ export const useHabitDetails = (habitId: string) => {
     }: { 
       notes?: string; 
       rating?: number 
-    }) => markHabitAsCompleted(habitId, notes, rating),
+    }) => markHabitAsCompleted(habitId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habit', habitId] });
       queryClient.invalidateQueries({ queryKey: ['habitLogs', habitId] });

@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 import logging
 import os
 from dotenv import load_dotenv
-from app.api.endpoints import goals, tasks, auth, ai_chat, subscriptions, finance, habits, calendar
 from app.api.router import api_router
 from app.core.config import settings
 
@@ -61,46 +60,10 @@ async def global_exception_handler(request, exc):
 if os.environ.get("ENV", "development") == "development":
     print("Ejecutando en modo desarrollo")
 
-# Incluir routers
+# Incluir router principal que contiene todos los endpoints
 app.include_router(
     api_router,
     prefix="/api/v1",
-)
-
-app.include_router(
-    auth.router,
-    prefix="/api/auth",
-    tags=["auth"],
-)
-
-app.include_router(
-    goals.router,
-    prefix="/api/goals",
-    tags=["goals"],
-)
-
-app.include_router(
-    tasks.router,
-    prefix="/api/tasks",
-    tags=["tasks"],
-)
-
-app.include_router(
-    finance.router,
-    prefix="/api/finance",
-    tags=["finance"],
-)
-
-app.include_router(
-    habits.router,
-    prefix="/api/habits",
-    tags=["habits"],
-)
-
-app.include_router(
-    calendar.router,
-    prefix="/api/calendar",
-    tags=["calendar"],
 )
 
 # Servir archivos estáticos si existe la carpeta

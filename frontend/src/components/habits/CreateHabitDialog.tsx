@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,134 +37,97 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
   const [category, setCategory] = useState('');
-  const [goalValue, setGoalValue] = useState(1);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!onCreateHabit || typeof onCreateHabit !== 'function') {
+      console.error("onCreateHabit no es una función válida", onCreateHabit);
+      return;
+    }
+    
     const newHabit: HabitCreate = {
       title,
       description: description || undefined,
-      frequency,
+      frequency: 'daily', // Simplificado a diario por defecto
       category: category || undefined,
-      goal_value: goalValue,
+      goal_value: 1, // Valor predeterminado
       is_active: true,
       specific_days: null
     };
     
-    console.log('Enviando hábito al backend:', JSON.stringify(newHabit));
-    
     onCreateHabit(newHabit);
     resetForm();
+    onOpenChange(false);
   };
   
   const resetForm = () => {
     setTitle('');
     setDescription('');
-    setFrequency('daily');
     setCategory('');
-    setGoalValue(1);
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[450px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Crear nuevo hábito</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Completa el formulario para crear un nuevo hábito de seguimiento.
-            </p>
+            <DialogTitle>Nuevo hábito</DialogTitle>
+            <DialogDescription>
+              Crea un nuevo hábito para realizar seguimiento diario.
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-6 py-4">
+          <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title" className="font-medium">
-                Nombre del hábito *
+              <Label htmlFor="title">
+                ¿Qué hábito quieres formar?
               </Label>
               <Input
                 id="title"
-                placeholder="Ej. Meditar todos los días"
+                placeholder="Ej: Leer 10 minutos, Meditar, Beber agua..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                autoFocus
               />
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="description" className="font-medium">
-                Descripción
+              <Label htmlFor="description">
+                Descripción (opcional)
               </Label>
               <Textarea
                 id="description"
-                placeholder="Añade más detalles sobre este hábito..."
+                placeholder="Añade detalles sobre este hábito..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={3}
+                rows={2}
               />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="frequency" className="font-medium">
-                  Frecuencia
-                </Label>
-                <Select
-                  value={frequency}
-                  onValueChange={(value: 'daily' | 'weekly' | 'monthly' | 'custom') => setFrequency(value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona la frecuencia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="daily">Diario</SelectItem>
-                      <SelectItem value="weekly">Semanal</SelectItem>
-                      <SelectItem value="monthly">Mensual</SelectItem>
-                      <SelectItem value="custom">Personalizado</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="category" className="font-medium">
-                  Categoría
-                </Label>
-                <Select
-                  value={category}
-                  onValueChange={setCategory}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {HABIT_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="goalValue" className="font-medium">
-                Valor Objetivo
+              <Label htmlFor="category">
+                Categoría
               </Label>
-              <Input
-                id="goalValue"
-                type="number"
-                min="1"
-                value={goalValue}
-                onChange={(e) => setGoalValue(parseInt(e.target.value) || 1)}
-                placeholder="Ej. 1 para completar una vez, 10 para ejercicios, etc."
-              />
+              <Select
+                value={category}
+                onValueChange={setCategory}
+              >
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {HABIT_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.icon} {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
@@ -179,7 +143,7 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
               Cancelar
             </Button>
             <Button type="submit" disabled={!title.trim()}>
-              Crear Hábito
+              Crear
             </Button>
           </DialogFooter>
         </form>

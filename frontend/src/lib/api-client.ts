@@ -21,6 +21,9 @@ apiClient.interceptors.request.use(async (config) => {
     
     if (session) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
+      console.log(`Petición autenticada: ${config.url} - Token disponible`);
+    } else {
+      console.warn(`Petición sin autenticación: ${config.url} - No hay sesión activa`);
     }
     
     console.log(`Realizando petición a: ${config.url}`, config);

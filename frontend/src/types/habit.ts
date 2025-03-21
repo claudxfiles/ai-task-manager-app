@@ -17,6 +17,7 @@ export type Habit = {
   updated_at: string;
   is_active?: boolean;
   related_goal_id?: string;
+  isCompletedToday?: boolean;
 };
 
 export type HabitCreate = {
