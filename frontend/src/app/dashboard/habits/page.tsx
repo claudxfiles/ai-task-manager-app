@@ -92,22 +92,9 @@ export default function HabitsPage() {
       // Mostrar toast de éxito
       toast({
         title: "Hábito creado",
-        description: "El hábito se ha creado correctamente. Actualizando lista...",
+        description: "El hábito se ha creado correctamente",
         duration: 3000,
       });
-      
-      // Forzar actualización después de un breve retardo
-      setTimeout(() => {
-        handleRefresh();
-        
-        // Intentar actualizar nuevamente si no hay datos después de un tiempo
-        setTimeout(() => {
-          if (habits?.length === 0) {
-            console.log("No se detectaron hábitos en el primer refresco, intentando nuevamente...");
-            handleRefresh();
-          }
-        }, 2000);
-      }, 1000);
     } else {
       console.error("createHabit no es una función válida", createHabit);
       toast({
@@ -119,20 +106,10 @@ export default function HabitsPage() {
     }
   };
   
-  // Verificar datos al montar el componente
+  // Verificar datos al montar el componente - realizamos solo un único refresh inicial
   useEffect(() => {
-    handleRefresh();
-    
-    // Programar una actualización adicional después de un tiempo
-    const timeoutId = setTimeout(() => {
-      if (habits?.length === 0) {
-        console.log("Realizando segunda comprobación de hábitos...");
-        handleRefresh();
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
+    refetch();
+  }, [refetch]);
 
   // Manejador para eliminar un hábito
   const handleDeleteHabit = (habitId: string) => {
@@ -149,11 +126,6 @@ export default function HabitsPage() {
           duration: 3000,
         });
         setHabitToDelete(null);
-        
-        // Refrescar después de eliminar
-        setTimeout(() => {
-          handleRefresh();
-        }, 1000);
       } catch (error) {
         console.error("Error al eliminar hábito:", error);
         toast({

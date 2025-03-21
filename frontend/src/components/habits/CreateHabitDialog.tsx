@@ -42,9 +42,8 @@ export const CreateHabitDialog: React.FC<CreateHabitDialogProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!onCreateHabit || typeof onCreateHabit !== 'function') {
-      console.error("onCreateHabit no es una función válida", onCreateHabit);
-      return;
+    if (!title.trim()) {
+      return; // No permitir crear hábitos sin título
     }
     
     const newHabit: HabitCreate = {

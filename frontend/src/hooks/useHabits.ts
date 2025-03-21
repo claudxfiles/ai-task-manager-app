@@ -51,7 +51,7 @@ export const useHabits = (category?: string) => {
       
       return habitsWithStatus;
     },
-    staleTime: 0, // Disminuir el tiempo de caché para asegurar datos frescos
+    staleTime: 5000, // Aumentar tiempo de caché para prevenir múltiples cargas innecesarias
   });
   
   // Filtrar por categoría si es necesario
@@ -62,51 +62,63 @@ export const useHabits = (category?: string) => {
   // Mutación para crear un hábito
   const createHabitMutation = useMutation({
     mutationFn: (habit: HabitCreate) => habitService.createHabit(habit),
-    onSuccess: () => {
-      // Invalidar la caché inmediatamente
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
-      // Forzar un refetch inmediato, aumentando el tiempo de espera y asegurando que no use caché
-      queryClient.resetQueries({ queryKey: ['habits'] });
+    onSuccess: (newHabit) => {
+      // Actualizar la caché directamente con el nuevo hábito creado
+      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+        const today = new Date().toISOString().split('T')[0];
+        const newHabitWithStatus = {
+          ...newHabit,
+          isCompletedToday: false
+        };
+        
+        // Si ya existen datos, añadir el nuevo hábito
+        if (oldData) {
+          return [...oldData, newHabitWithStatus];
+        }
+        
+        // Si no hay datos, crear un nuevo array con el hábito creado
+        return [newHabitWithStatus];
+      });
       
-      // Ejecución múltiple de refetch para asegurar que obtenemos los datos
-      setTimeout(() => {
-        refetch().then(() => {
-          console.log('Primer refetch completado');
-          // Si el primer refetch no trae datos, intentarlo nuevamente
-          setTimeout(() => {
-            queryClient.resetQueries({ queryKey: ['habits'] });
-            refetch().then(() => console.log('Segundo refetch completado'));
-          }, 1000);
-        });
-        console.log('Caché resetada y refetch ejecutado después de crear hábito');
-      }, 500);
+      // Invalidar la caché para futuras consultas
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
     },
     onError: (error) => {
       console.error('Error al crear hábito en mutation:', error);
     }
   });
   
-  // Efecto para actualizar los datos cuando se monta el componente
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-  
   // Mutación para actualizar un hábito
   const updateHabitMutation = useMutation({
     mutationFn: ({ id, ...rest }: HabitUpdate & { id: string }) => 
       habitService.updateHabit({ id, ...rest }),
-    onSuccess: () => {
+    onSuccess: (updatedHabit) => {
+      // Actualizar la caché directamente
+      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+        if (!oldData) return [updatedHabit];
+        
+        return oldData.map(habit => 
+          habit.id === updatedHabit.id ? { ...updatedHabit, isCompletedToday: habit.isCompletedToday } : habit
+        );
+      });
+      
+      // Invalidar la caché para futuras consultas
       queryClient.invalidateQueries({ queryKey: ['habits'] });
-      setTimeout(() => refetch(), 300); 
     },
   });
   
   // Mutación para eliminar un hábito
   const deleteHabitMutation = useMutation({
     mutationFn: (habitId: string) => habitService.deleteHabit(habitId),
-    onSuccess: () => {
+    onSuccess: (_, habitId) => {
+      // Actualizar la caché directamente eliminando el hábito
+      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.filter(habit => habit.id !== habitId);
+      });
+      
+      // Invalidar la caché para futuras consultas
       queryClient.invalidateQueries({ queryKey: ['habits'] });
-      setTimeout(() => refetch(), 300);
     },
   });
   
@@ -119,10 +131,19 @@ export const useHabits = (category?: string) => {
         notes,
         quality_rating: rating
       }),
-    onSuccess: () => {
+    onSuccess: (newLog, { habitId }) => {
+      // Actualizar la caché directamente marcando el hábito como completado
+      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+        if (!oldData) return [];
+        
+        return oldData.map(habit => 
+          habit.id === habitId ? { ...habit, isCompletedToday: true } : habit
+        );
+      });
+      
+      // Invalidar las cachés relacionadas
+      queryClient.invalidateQueries({ queryKey: ['habitLogs', habitId] });
       queryClient.invalidateQueries({ queryKey: ['habits'] });
-      queryClient.invalidateQueries({ queryKey: ['habitLogs'] });
-      setTimeout(() => refetch(), 300);
     },
   });
   
