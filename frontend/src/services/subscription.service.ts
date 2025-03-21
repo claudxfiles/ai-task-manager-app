@@ -252,7 +252,6 @@ export class SubscriptionService {
   async getPaymentHistory(): Promise<PaymentHistory[]> {
     const supabase = createClientComponent();
     
-    // Verificar autenticación
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       return [];
@@ -269,7 +268,7 @@ export class SubscriptionService {
       throw new Error('No se pudo obtener el historial de pagos');
     }
     
-    return data;
+    return data || [];
   }
 }
 

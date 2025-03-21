@@ -1,331 +1,298 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { 
-  subscriptionService, 
-  SubscriptionPlan, 
-  Subscription, 
-  PaymentHistory 
-} from '@/services/subscription.service';
-import { createClientComponent } from '@/lib/supabase';
-import { AlertCircle, CheckCircle, Loader2, XCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { SubscriptionService } from '@/services/subscription.service';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { toast } from '@/components/ui/use-toast';
+import { Icons } from '@/components/shared/icons';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function ManageSubscriptionPage() {
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
-  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
+  const router = useRouter();
+  const [subscription, setSubscription] = useState<any>(null);
+  const [plan, setPlan] = useState<any>(null);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const router = useRouter();
-  
-  // Cargar suscripción y detalles
+
   useEffect(() => {
     async function loadData() {
+      const subscriptionService = SubscriptionService.getInstance();
+      
       try {
-        setIsLoading(true);
-        setError(null);
+        // Cargar suscripción actual
+        const currentSubscription = await subscriptionService.getCurrentSubscription();
+        setSubscription(currentSubscription);
         
-        // Verificar autenticación
-        const supabase = createClientComponent();
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          router.push('/login?returnTo=/subscription/manage');
-          return;
+        if (currentSubscription) {
+          // Cargar detalles del plan
+          const plans = await subscriptionService.getSubscriptionPlans();
+          const currentPlan = plans.find(p => p.id === currentSubscription.plan_id);
+          setPlan(currentPlan);
+          
+          // Cargar historial de pagos
+          const history = await subscriptionService.getPaymentHistory();
+          setPaymentHistory(history);
         }
-        
-        // Cargar la suscripción actual
-        const subscription = await subscriptionService.getCurrentSubscription();
-        setSubscription(subscription);
-        
-        // Si no hay suscripción, no hay nada que mostrar
-        if (!subscription) {
-          setIsLoading(false);
-          return;
-        }
-        
-        // Cargar detalles del plan
-        const { data: planData, error: planError } = await supabase
-          .from('subscription_plans')
-          .select('*')
-          .eq('id', subscription.plan_id)
-          .single();
-        
-        if (planError) {
-          console.error('Error al cargar detalles del plan:', planError);
-          setError('No se pudieron cargar los detalles del plan');
-        } else {
-          setPlan(planData);
-        }
-        
-        // Cargar historial de pagos
-        const payments = await subscriptionService.getPaymentHistory();
-        setPaymentHistory(payments);
-        
-      } catch (err: any) {
-        console.error('Error al cargar datos de suscripción:', err);
-        setError(err.message || 'Ocurrió un error al cargar los datos de suscripción');
+      } catch (error) {
+        console.error('Error al cargar información de suscripción:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información de tu suscripción",
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
       }
     }
     
     loadData();
-  }, [router]);
-  
-  // Cancelar suscripción
+  }, []);
+
   const handleCancelSubscription = async () => {
+    if (!confirm('¿Estás seguro de que deseas cancelar tu suscripción? Perderás acceso a las funciones premium al final de tu período de facturación.')) {
+      return;
+    }
+    
+    setIsCancelling(true);
     try {
-      setIsCancelling(true);
-      setError(null);
-      
+      const subscriptionService = SubscriptionService.getInstance();
       await subscriptionService.cancelSubscription();
       
-      setSuccess('Tu suscripción ha sido cancelada. Seguirás teniendo acceso hasta el final del período actual.');
-      setShowCancelDialog(false);
+      toast({
+        title: "Suscripción Cancelada",
+        description: "Tu suscripción se ha cancelado correctamente. Tendrás acceso a las funciones premium hasta el final del período actual.",
+      });
       
-      // Actualizar la suscripción en pantalla
-      if (subscription) {
-        setSubscription({
-          ...subscription,
-          status: 'cancelled',
-          cancel_at_period_end: true
-        });
-      }
-      
-    } catch (err: any) {
-      console.error('Error al cancelar suscripción:', err);
-      setError(err.message || 'Ocurrió un error al cancelar la suscripción');
+      // Recargar la suscripción
+      const currentSubscription = await subscriptionService.getCurrentSubscription();
+      setSubscription(currentSubscription);
+    } catch (error: any) {
+      console.error('Error al cancelar suscripción:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Error al cancelar la suscripción",
+        variant: "destructive"
+      });
     } finally {
       setIsCancelling(false);
     }
   };
-  
-  // Formatear fecha
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return format(new Date(dateString), 'PPP', { locale: es });
+
+  const renderSubscriptionStatus = () => {
+    if (!subscription) return null;
+    
+    if (subscription.status === 'active') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400">
+          Activa
+        </span>
+      );
+    } else if (subscription.status === 'cancelled' && subscription.cancel_at_period_end) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-800/30 dark:text-amber-400">
+          Cancelada (acceso hasta fin de período)
+        </span>
+      );
+    } else if (subscription.status === 'cancelled') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400">
+          Cancelada
+        </span>
+      );
+    } else if (subscription.status === 'pending') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-400">
+          Pendiente
+        </span>
+      );
+    }
+    
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400">
+        {subscription.status}
+      </span>
+    );
   };
-  
+
+  if (isLoading) {
+    return (
+      <div className="container py-12 flex items-center justify-center">
+        <div className="text-center">
+          <Icons.spinner className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Cargando información de suscripción...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!subscription) {
+    return (
+      <div className="container py-12">
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestionar Suscripción</CardTitle>
+            <CardDescription>No tienes una suscripción activa actualmente</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">
+              No encontramos ninguna suscripción activa asociada a tu cuenta. Explora nuestros planes y elige el que mejor se adapte a tus necesidades.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => router.push('/subscription')}>
+              Ver Planes Disponibles
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="container py-8 max-w-4xl">
-      <h1 className="text-3xl font-bold mb-6">Gestionar Suscripción</h1>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert className="mb-6 bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-600">Éxito</AlertTitle>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-      
-      {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <Loader2 className="animate-spin h-8 w-8 text-primary" />
-          <span className="ml-2">Cargando datos de suscripción...</span>
+    <div className="container py-12">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Gestionar Suscripción</h1>
+          <p className="text-muted-foreground">
+            Administra tu suscripción y consulta tu historial de pagos
+          </p>
         </div>
-      ) : !subscription ? (
-        <div className="text-center py-12">
-          <p className="text-lg mb-6">No tienes ninguna suscripción activa.</p>
-          <Button onClick={() => router.push('/pricing')}>Ver Planes Disponibles</Button>
-        </div>
-      ) : (
-        <>
-          <Card className="mb-8">
+
+        <div className="grid gap-6">
+          {/* Detalles de suscripción */}
+          <Card>
             <CardHeader>
-              <CardTitle>Tu Suscripción</CardTitle>
-              <CardDescription>Detalles de tu plan actual</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Detalles de tu Plan</CardTitle>
+                  <CardDescription>Información sobre tu suscripción actual</CardDescription>
+                </div>
+                {renderSubscriptionStatus()}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">Detalles del Plan</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Plan:</dt>
-                      <dd className="font-medium">{plan?.name || 'N/A'}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Precio:</dt>
-                      <dd className="font-medium">
-                        {plan ? `$${plan.price} / ${plan.interval === 'month' ? 'mes' : 'año'}` : 'N/A'}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Estado:</dt>
-                      <dd>
-                        <Badge variant={
-                          subscription.status === 'active' ? 'default' :
-                          subscription.status === 'cancelled' ? 'destructive' :
-                          'outline'
-                        }>
-                          {
-                            subscription.status === 'active' ? 'Activa' :
-                            subscription.status === 'cancelled' ? 'Cancelada' :
-                            subscription.status === 'trial' ? 'Período de prueba' :
-                            subscription.status
-                          }
-                        </Badge>
-                      </dd>
-                    </div>
-                  </dl>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Plan</h3>
+                    <p className="text-lg font-semibold">{plan?.name || 'Plan Premium'}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Precio</h3>
+                    <p className="text-lg font-semibold">
+                      {plan?.price === 0 
+                        ? 'Gratis' 
+                        : `$${plan?.price || '0'} / ${plan?.interval === 'month' ? 'mes' : 'año'}`}
+                    </p>
+                  </div>
                 </div>
-                
+
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Fecha de inicio</h3>
+                    <p>
+                      {subscription.current_period_start 
+                        ? format(new Date(subscription.current_period_start), 'PPP', { locale: es })
+                        : 'No disponible'}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground">Próxima facturación</h3>
+                    <p>
+                      {subscription.current_period_end
+                        ? format(new Date(subscription.current_period_end), 'PPP', { locale: es })
+                        : 'No disponible'}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">Período Actual</h3>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Inicia:</dt>
-                      <dd className="font-medium">{formatDate(subscription.current_period_start)}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Termina:</dt>
-                      <dd className="font-medium">{formatDate(subscription.current_period_end)}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-muted-foreground">Renovación:</dt>
-                      <dd className="font-medium">
-                        {subscription.cancel_at_period_end ? 'No se renovará' : 'Automática'}
-                      </dd>
-                    </div>
-                  </dl>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Método de pago</h3>
+                  <div className="flex items-center space-x-2">
+                    <Icons.credit className="h-5 w-5 text-muted-foreground" />
+                    <p>{subscription.payment_provider === 'paypal' ? 'PayPal' : 'Método de pago predeterminado'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button
+            <CardFooter className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <Button 
                 variant="outline"
-                onClick={() => router.push('/pricing')}
+                onClick={() => router.push('/subscription')}
               >
                 Cambiar Plan
               </Button>
-              
               {subscription.status === 'active' && !subscription.cancel_at_period_end && (
-                <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="destructive">Cancelar Suscripción</Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>¿Cancelar tu suscripción?</DialogTitle>
-                      <DialogDescription>
-                        Podrás seguir utilizando todas las funciones del plan hasta el final del período actual.
-                        Después de eso, tu cuenta pasará automáticamente al plan gratuito.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowCancelDialog(false)}
-                        disabled={isCancelling}
-                      >
-                        Volver
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleCancelSubscription}
-                        disabled={isCancelling}
-                      >
-                        {isCancelling ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Procesando...
-                          </>
-                        ) : 'Confirmar Cancelación'}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <Button 
+                  variant="destructive"
+                  onClick={handleCancelSubscription}
+                  disabled={isCancelling}
+                >
+                  {isCancelling && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                  Cancelar Suscripción
+                </Button>
               )}
             </CardFooter>
           </Card>
-          
-          <h2 className="text-2xl font-bold mt-12 mb-4">Historial de Pagos</h2>
-          {paymentHistory.length === 0 ? (
-            <p className="text-muted-foreground">No hay registros de pago disponibles.</p>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>ID de Pago</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paymentHistory.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>{formatDate(payment.created_at)}</TableCell>
-                      <TableCell className="font-mono text-xs">{payment.payment_id}</TableCell>
-                      <TableCell>${payment.amount} {payment.currency}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          payment.status === 'completed' ? 'default' :
-                          payment.status === 'failed' ? 'destructive' :
-                          payment.status === 'refunded' ? 'outline' :
-                          'secondary'
-                        }>
-                          {
-                            payment.status === 'completed' ? 'Completado' :
-                            payment.status === 'failed' ? 'Fallido' :
-                            payment.status === 'refunded' ? 'Reembolsado' :
-                            payment.status === 'pending' ? 'Pendiente' :
-                            payment.status
-                          }
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+
+          {/* Historial de pagos */}
+          {paymentHistory.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial de Pagos</CardTitle>
+                <CardDescription>Registro de tus pagos anteriores</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative overflow-x-auto rounded-md border">
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-muted-foreground uppercase bg-muted">
+                      <tr>
+                        <th scope="col" className="px-4 py-3">Fecha</th>
+                        <th scope="col" className="px-4 py-3">Monto</th>
+                        <th scope="col" className="px-4 py-3">Estado</th>
+                        <th scope="col" className="px-4 py-3">Método</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentHistory.map((payment) => (
+                        <tr key={payment.id} className="border-t">
+                          <td className="px-4 py-3">
+                            {format(new Date(payment.created_at), 'PPP', { locale: es })}
+                          </td>
+                          <td className="px-4 py-3">
+                            ${payment.amount} {payment.currency}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              payment.status === 'completed' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400' 
+                                : 'bg-amber-100 text-amber-800 dark:bg-amber-800/30 dark:text-amber-400'
+                            }`}>
+                              {payment.status === 'completed' ? 'Completado' : payment.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {payment.payment_method === 'paypal' ? 'PayPal' : payment.payment_method}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 } 

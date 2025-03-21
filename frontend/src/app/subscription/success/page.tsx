@@ -1,98 +1,121 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { SubscriptionService } from '@/services/subscription.service';
 import { Button } from '@/components/ui/button';
-import { subscriptionService } from '@/services/subscription.service';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Icons } from '@/components/shared/icons';
+import { toast } from '@/components/ui/use-toast';
 
 export default function SubscriptionSuccessPage() {
-  const [isProcessing, setIsProcessing] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [planName, setPlanName] = useState('');
+
   useEffect(() => {
-    async function processSubscription() {
+    const confirmSubscription = async () => {
+      const subscriptionId = searchParams.get('subscription_id');
+      
+      if (!subscriptionId) {
+        setHasError(true);
+        setIsLoading(false);
+        toast({
+          title: "Error",
+          description: "No se encontró información de la suscripción",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       try {
-        // Obtener el ID de suscripción de los parámetros
-        const subscriptionId = searchParams.get('subscription_id');
+        // Confirmar la suscripción en nuestra base de datos
+        const subscriptionService = SubscriptionService.getInstance();
+        const subscription = await subscriptionService.confirmSubscription(subscriptionId);
         
-        if (!subscriptionId) {
-          setError('No se pudo encontrar la información de la suscripción');
-          setIsProcessing(false);
-          return;
+        // Obtener el nombre del plan
+        if (subscription.plan_id) {
+          const plans = await subscriptionService.getSubscriptionPlans();
+          const plan = plans.find(p => p.id === subscription.plan_id);
+          if (plan) {
+            setPlanName(plan.name);
+          }
         }
         
-        // Confirmar la suscripción
-        await subscriptionService.confirmSubscription(subscriptionId);
-        
-        // La confirmación fue exitosa
-        setIsProcessing(false);
-        
-      } catch (err: any) {
-        console.error('Error al procesar la suscripción:', err);
-        setError(err.message || 'Ocurrió un error al procesar tu suscripción');
-        setIsProcessing(false);
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Error al confirmar suscripción:', error);
+        setHasError(true);
+        setIsLoading(false);
+        toast({
+          title: "Error",
+          description: error.message || "Error al confirmar la suscripción",
+          variant: "destructive"
+        });
       }
-    }
+    };
     
-    processSubscription();
+    confirmSubscription();
   }, [searchParams]);
-  
+
   return (
-    <div className="container max-w-lg py-16">
-      <Card className="text-center">
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            {isProcessing ? 'Procesando tu Suscripción' : error ? 'Hubo un Problema' : '¡Suscripción Exitosa!'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isProcessing ? (
-            <div className="flex flex-col items-center py-6">
-              <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">
-                Estamos confirmando tu suscripción. Por favor, espera un momento...
-              </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50 dark:from-gray-950 dark:to-gray-900 p-4">
+      <Card className="max-w-md w-full">
+        <CardHeader className="text-center">
+          {isLoading ? (
+            <div className="py-8 flex flex-col items-center">
+              <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
+              <CardTitle>Confirmando tu suscripción</CardTitle>
+              <CardDescription className="mt-2">
+                Estamos procesando tu suscripción, por favor espera un momento...
+              </CardDescription>
             </div>
-          ) : error ? (
-            <Alert variant="destructive" className="mb-6">
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : (
-            <div className="flex flex-col items-center py-6">
-              <div className="bg-primary/10 p-4 rounded-full mb-6">
-                <CheckCircle className="h-12 w-12 text-primary" />
+          ) : hasError ? (
+            <>
+              <div className="mx-auto mb-4 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-full w-16 h-16 flex items-center justify-center">
+                <Icons.alert className="h-8 w-8" />
               </div>
-              <p className="text-lg mb-2">
-                ¡Tu suscripción ha sido activada correctamente!
-              </p>
+              <CardTitle>Error en la suscripción</CardTitle>
+              <CardDescription className="mt-2">
+                Ha ocurrido un error al procesar tu suscripción. Por favor, inténtalo nuevamente o contacta a soporte.
+              </CardDescription>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto mb-4 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 p-3 rounded-full w-16 h-16 flex items-center justify-center">
+                <Icons.check className="h-8 w-8" />
+              </div>
+              <CardTitle>¡Suscripción Exitosa!</CardTitle>
+              <CardDescription className="mt-2">
+                Tu suscripción al plan {planName || 'Premium'} ha sido confirmada. ¡Gracias por confiar en SoulDream!
+              </CardDescription>
+            </>
+          )}
+        </CardHeader>
+        
+        {!isLoading && (
+          <CardContent className="text-center">
+            {hasError ? (
               <p className="text-muted-foreground">
-                Ahora puedes disfrutar de todas las ventajas de tu plan.
+                Si el problema persiste, por favor contacta a nuestro equipo de soporte para asistencia.
               </p>
-            </div>
-          )}
-        </CardContent>
+            ) : (
+              <p className="text-muted-foreground">
+                Ahora tienes acceso a todas las funcionalidades premium de la plataforma. Te invitamos a explorar todas las nuevas características disponibles.
+              </p>
+            )}
+          </CardContent>
+        )}
+        
         <CardFooter className="flex justify-center">
-          <Button
+          <Button 
             onClick={() => router.push('/dashboard')}
-            disabled={isProcessing}
+            disabled={isLoading}
           >
-            {error ? 'Volver al Dashboard' : 'Ir al Dashboard'}
+            Ir al Dashboard
           </Button>
-          {error && (
-            <Button
-              variant="outline"
-              onClick={() => router.push('/subscription/manage')}
-              className="ml-2"
-            >
-              Ver mis Suscripciones
-            </Button>
-          )}
         </CardFooter>
       </Card>
     </div>
