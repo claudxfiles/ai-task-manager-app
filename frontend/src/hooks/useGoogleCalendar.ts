@@ -289,7 +289,19 @@ export function useGoogleCalendarStatus() {
 // Hook para sincronizar calendario
 export function useSyncCalendar() {
   const { session } = useAuth();
-  const queryClient = useQueryClient();
+  
+  // Añadir manejo de error para cuando el QueryClient no está disponible
+  let queryClient;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.error('QueryClient no disponible. Asegúrate de que este componente esté dentro de un QueryClientProvider.');
+    // Proporcionar un objeto de reemplazo con una función invalidateQueries que no hace nada
+    queryClient = {
+      invalidateQueries: () => {}
+    };
+  }
+  
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncStats, setLastSyncStats] = useState<{

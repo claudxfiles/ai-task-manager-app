@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Bug, RotateCw } from 'lucide-react';
@@ -15,6 +15,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { CalendarEvent as CalendarEventType, EventSource } from '@/types/calendar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Crear un QueryClient para este componente específico
+const calendarQueryClient = new QueryClient();
 
 // Definir la interfaz para los eventos del calendario
 interface GoogleEvent {
@@ -43,7 +47,17 @@ interface SyncStats {
   errors: string[];
 }
 
+// Wrapping del componente con QueryClientProvider
 export function CalendarView() {
+  return (
+    <QueryClientProvider client={calendarQueryClient}>
+      <CalendarViewContent />
+    </QueryClientProvider>
+  );
+}
+
+// Componente interno que contiene toda la funcionalidad
+function CalendarViewContent() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'day' | 'week' | 'month'>('week');
   const { toast } = useToast();
