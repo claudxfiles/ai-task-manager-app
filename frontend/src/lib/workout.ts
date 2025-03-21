@@ -411,6 +411,7 @@ export async function getWorkoutStatistics(
       favoriteWorkoutType: 'N/A',
       workoutsByType: {},
       workoutsByMonth: {},
+      mostWorkedMuscleGroups: {},
       averageDuration: 0,
       streakDays: 0
     };
@@ -466,6 +467,16 @@ export async function getWorkoutStatistics(
   let streakDays = 0;
   // Implementación simple de racha - se puede mejorar para detectar días consecutivos
   
+  // Contar grupos musculares trabajados
+  const mostWorkedMuscleGroups: Record<string, number> = {};
+  for (const workout of workouts) {
+    if (workout.muscle_groups && Array.isArray(workout.muscle_groups)) {
+      workout.muscle_groups.forEach((group: string) => {
+        mostWorkedMuscleGroups[group] = (mostWorkedMuscleGroups[group] || 0) + 1;
+      });
+    }
+  }
+
   return {
     totalWorkouts,
     totalDuration,
@@ -473,6 +484,7 @@ export async function getWorkoutStatistics(
     favoriteWorkoutType,
     workoutsByType,
     workoutsByMonth,
+    mostWorkedMuscleGroups,
     averageDuration,
     streakDays
   };

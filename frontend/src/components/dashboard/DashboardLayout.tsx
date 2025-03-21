@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
@@ -20,7 +20,12 @@ import {
   Target,
   CheckCircle2,
   Bot,
-  Sparkles
+  Sparkles,
+  Activity,
+  Timer,
+  ListTodo,
+  Bookmark,
+  BarChart3
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -30,9 +35,14 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarOpen, toggleSidebar, theme, setTheme } = useStore();
   const { user, signOut } = useAuth();
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const toggleSubmenu = (menu: string) => {
+    setOpenSubmenu(openSubmenu === menu ? null : menu);
   };
 
   return (
@@ -124,13 +134,69 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             </li>
             <li>
-              <Link 
-                href="/dashboard/workout" 
-                className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
-              >
-                <Dumbbell className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
-                <span className="ml-3">Workout</span>
-              </Link>
+              <div className="flex flex-col">
+                <button 
+                  onClick={() => toggleSubmenu('workout')}
+                  className="flex items-center justify-between w-full p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                >
+                  <div className="flex items-center">
+                    <Dumbbell className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                    <span className="ml-3">Workout</span>
+                  </div>
+                  <svg className={`w-3 h-3 transform ${openSubmenu === 'workout' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                {openSubmenu === 'workout' && (
+                  <ul className="pl-4 mt-1 space-y-1">
+                    <li>
+                      <Link 
+                        href="/dashboard/workout" 
+                        className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                      >
+                        <Activity className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                        <span className="ml-3">Dashboard</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link 
+                        href="/dashboard/workout/tracker" 
+                        className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                      >
+                        <Timer className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                        <span className="ml-3">Rastreador</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link 
+                        href="/dashboard/workout?view=list" 
+                        className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                      >
+                        <ListTodo className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                        <span className="ml-3">Mis Entrenamientos</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link 
+                        href="/dashboard/workout?view=templates" 
+                        className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                      >
+                        <Bookmark className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                        <span className="ml-3">Plantillas</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link 
+                        href="/dashboard/workout?view=stats" 
+                        className="flex items-center p-2 text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group"
+                      >
+                        <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
+                        <span className="ml-3">Estadísticas</span>
+                      </Link>
+                    </li>
+                  </ul>
+                )}
+              </div>
             </li>
             <li>
               <Link 

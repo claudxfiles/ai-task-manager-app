@@ -672,7 +672,7 @@ export default function WorkoutDetail({ id }: WorkoutDetailProps) {
                     <SelectItem value={WorkoutType.YOGA}>Yoga</SelectItem>
                     <SelectItem value={WorkoutType.PILATES}>Pilates</SelectItem>
                     <SelectItem value={WorkoutType.CROSSFIT}>CrossFit</SelectItem>
-                    <SelectItem value={""}>Otro</SelectItem>
+                    <SelectItem value="OTHER">Otro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

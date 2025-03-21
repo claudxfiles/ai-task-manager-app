@@ -9,6 +9,9 @@ import { CalendarIcon, BarChart3Icon, DumbbellIcon, TimerIcon, PlusIcon, Sparkle
 import WorkoutList from "./WorkoutList";
 import WorkoutStatisticsView from "./WorkoutStatisticsView";
 import WorkoutProgressView from "./WorkoutProgressView";
+import WorkoutProgressChart from "./WorkoutProgressChart";
+import WorkoutTracker from "./WorkoutTracker";
+import WorkoutRecommendationEngine from "./WorkoutRecommendationEngine";
 import CreateWorkoutDialog from "./CreateWorkoutDialog";
 import WorkoutCalendarIntegration from "./WorkoutCalendarIntegration";
 import AIWorkoutRecommendations from "./AIWorkoutRecommendations";
@@ -17,6 +20,7 @@ import { getUserWorkouts, getWorkoutStatistics } from "@/lib/workout";
 import { WorkoutStatistics } from "@/types/workout";
 import { useAuth } from "@/hooks/useAuth";
 import WorkoutTemplateSelector from "./WorkoutTemplateSelector";
+import Link from "next/link";
 
 export default function WorkoutDashboard() {
   const { user } = useAuth();
@@ -82,22 +86,37 @@ export default function WorkoutDashboard() {
               <LayoutTemplateIcon className="h-4 w-4" />
               Seleccionar Rutina
             </Button>
+            <Link href="/dashboard/workout/tracker">
+              <Button variant="secondary" className="gap-2">
+                <TimerIcon className="h-4 w-4" />
+                Iniciar Rastreador
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <WorkoutList onRefresh={handleRefresh} key={`list-${refreshKey}`} />
-        <WorkoutStatisticsView stats={stats} isLoading={isLoading} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+          <WorkoutList onRefresh={handleRefresh} key={`list-${refreshKey}`} />
+        </div>
+        <div>
+          <WorkoutRecommendationEngine />
+        </div>
       </div>
 
-      <Tabs defaultValue="progress">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <WorkoutStatisticsView stats={stats} isLoading={isLoading} />
+        <WorkoutProgressView />
+      </div>
+
+      <Tabs defaultValue="advanced-charts">
         <TabsList className="grid grid-cols-2 w-[400px] mb-4">
-          <TabsTrigger value="progress">Progreso</TabsTrigger>
+          <TabsTrigger value="advanced-charts">Análisis Avanzado</TabsTrigger>
           <TabsTrigger value="calendar">Calendario</TabsTrigger>
         </TabsList>
-        <TabsContent value="progress" className="space-y-4">
-          <WorkoutProgressView />
+        <TabsContent value="advanced-charts" className="space-y-4">
+          <WorkoutProgressChart />
         </TabsContent>
         <TabsContent value="calendar" className="space-y-4">
           <WorkoutCalendarIntegration />
