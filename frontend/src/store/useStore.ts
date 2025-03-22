@@ -37,6 +37,7 @@ interface AppState {
   // Acciones
   setTheme: (theme: 'light' | 'dark') => void;
   toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
   addTask: (task: Task) => void;
   updateTask: (id: string, task: Partial<Task>) => void;
   deleteTask: (id: string) => void;
@@ -58,6 +59,7 @@ export const useStore = create<AppState>()(
       // Acciones
       setTheme: (theme) => set({ theme }),
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
       
       // Acciones de tareas
       addTask: (task) => set((state) => ({ tasks: [...state.tasks, task] })),
