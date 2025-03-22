@@ -134,7 +134,6 @@ function UserProfileContent() {
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Perfil de usuario</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-6">Actualiza tus datos personales</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -290,7 +289,7 @@ function UserProfileContent() {
 
       {/* Subscription Plan Section */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Plan de suscripción</h2>
             <p className="text-gray-500 dark:text-gray-400">Revisa y actualiza tu plan de suscripción</p>
@@ -305,8 +304,8 @@ function UserProfileContent() {
         </div>
 
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-          <div className="flex items-center">
-            <CreditCard className="h-10 w-10 text-indigo-500 mr-4" />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <CreditCard className="h-10 w-10 text-indigo-500" />
             <div>
               <div className="text-lg font-semibold text-gray-900 dark:text-white">
                 Plan actual: <span className="text-indigo-600 dark:text-indigo-400">{profile?.subscription_tier ? profile.subscription_tier.charAt(0).toUpperCase() + profile.subscription_tier.slice(1) : 'Free'}</span>

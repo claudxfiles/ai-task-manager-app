@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { FinanceDashboard } from '@/components/finance/FinanceDashboard';
 import { TransactionManager } from '@/components/finance/TransactionManager';
 import { SubscriptionManager } from '@/components/finance/SubscriptionManager';
@@ -36,86 +35,84 @@ export default function FinancePage() {
   }, [tabParam]);
   
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Gestión Financiera</h1>
-          <p className="text-muted-foreground">
-            Administra tus finanzas, planifica tus ahorros y alcanza tus metas económicas.
-          </p>
-        </div>
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-muted h-12 w-full justify-start gap-0 rounded-none border-b dark:border-gray-800 p-0">
-            <TabsTrigger 
-              value="dashboard" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <PieChart className="h-4 w-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="transactions" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <Receipt className="h-4 w-4" />
-              <span>Transacciones</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="subscriptions" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <CreditCard className="h-4 w-4" />
-              <span>Suscripciones</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="assets" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <Home className="h-4 w-4" />
-              <span>Activos</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="calculator" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <Calculator className="h-4 w-4" />
-              <span>Calculadora</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="education" 
-              className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>Educación</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard" className="space-y-6">
-            <FinanceDashboard />
-          </TabsContent>
-          
-          <TabsContent value="transactions" className="space-y-6">
-            <TransactionManager />
-          </TabsContent>
-          
-          <TabsContent value="subscriptions" className="space-y-6">
-            <SubscriptionManager />
-          </TabsContent>
-          
-          <TabsContent value="assets" className="space-y-6">
-            <AssetPlanner />
-          </TabsContent>
-          
-          <TabsContent value="calculator" className="space-y-6">
-            <SavingsCalculator />
-          </TabsContent>
-          
-          <TabsContent value="education" className="space-y-6">
-            <FinancialEducation />
-          </TabsContent>
-        </Tabs>
+    <div className="space-y-6">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Gestión Financiera</h1>
+        <p className="text-muted-foreground">
+          Administra tus finanzas, planifica tus ahorros y alcanza tus metas económicas.
+        </p>
       </div>
-    </DashboardLayout>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-muted h-12 w-full justify-start gap-0 rounded-none border-b dark:border-gray-800 p-0">
+          <TabsTrigger 
+            value="dashboard" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <PieChart className="h-4 w-4" />
+            <span>Dashboard</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="transactions" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <Receipt className="h-4 w-4" />
+            <span>Transacciones</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="subscriptions" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <CreditCard className="h-4 w-4" />
+            <span>Suscripciones</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="assets" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <Home className="h-4 w-4" />
+            <span>Activos</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="calculator" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <Calculator className="h-4 w-4" />
+            <span>Calculadora</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="education" 
+            className="flex h-12 items-center gap-2 rounded-none border-b-2 border-transparent px-4 pb-3 pt-3 data-[state=active]:border-primary"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span>Educación</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="dashboard" className="space-y-6">
+          <FinanceDashboard />
+        </TabsContent>
+        
+        <TabsContent value="transactions" className="space-y-6">
+          <TransactionManager />
+        </TabsContent>
+        
+        <TabsContent value="subscriptions" className="space-y-6">
+          <SubscriptionManager />
+        </TabsContent>
+        
+        <TabsContent value="assets" className="space-y-6">
+          <AssetPlanner />
+        </TabsContent>
+        
+        <TabsContent value="calculator" className="space-y-6">
+          <SavingsCalculator />
+        </TabsContent>
+        
+        <TabsContent value="education" className="space-y-6">
+          <FinancialEducation />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 } 
