@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { User, Mail, Phone, MapPin, Calendar, Save } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Save, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 interface Profile {
   id: string;
@@ -16,10 +18,25 @@ interface Profile {
   address: string | null;
   birth_date: string | null;
   created_at: string;
+  subscription_tier: string | null;
 }
 
+// Crear un cliente de React Query para este componente
+const queryClient = new QueryClient();
+
+// Componente principal envuelto en QueryClientProvider
 export default function UserProfile() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <UserProfileContent />
+    </QueryClientProvider>
+  );
+}
+
+// Componente interno con la lógica del perfil
+function UserProfileContent() {
   const { user } = useAuthContext();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -115,158 +132,194 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Mi Perfil</h2>
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Perfil de usuario</h2>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">Actualiza tus datos personales</p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 space-y-4">
-            <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Nombre completo
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1 space-y-4">
+              <div>
+                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Nombre completo
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="full_name"
+                    id="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Tu nombre completo"
+                  />
                 </div>
-                <input
-                  type="text"
-                  name="full_name"
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Tu nombre completo"
-                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Correo electrónico
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    name="email"
+                    id="email"
+                    value={user?.email || ''}
+                    disabled
+                    className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  El correo electrónico no se puede cambiar
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Teléfono
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    name="phone"
+                    id="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Tu número de teléfono"
+                  />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Correo electrónico
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+            <div className="flex-1 space-y-4">
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Dirección
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    name="address"
+                    id="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="Tu dirección"
+                  />
                 </div>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white cursor-not-allowed"
-                />
               </div>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                El correo electrónico no se puede cambiar
-              </p>
-            </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Teléfono
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
+              <div>
+                <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Fecha de nacimiento
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Calendar className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="date"
+                    name="birth_date"
+                    id="birth_date"
+                    value={formData.birth_date}
+                    onChange={handleChange}
+                    className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
                 </div>
-                <input
-                  type="tel"
-                  name="phone"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Tu número de teléfono"
-                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Miembro desde
+                </label>
+                <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {profile?.created_at ? format(new Date(profile.created_at), 'dd/MM/yyyy', { locale: es }) : 'N/A'}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 space-y-4">
-            <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Dirección
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MapPin className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  name="address"
-                  id="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Tu dirección"
-                />
-              </div>
+          {error && (
+            <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{error}</span>
             </div>
+          )}
 
-            <div>
-              <label htmlFor="birth_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Fecha de nacimiento
-              </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="date"
-                  name="birth_date"
-                  id="birth_date"
-                  value={formData.birth_date}
-                  onChange={handleChange}
-                  className="pl-10 block w-full rounded-md border-gray-300 dark:border-gray-700 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
+          {success && (
+            <div className="bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-200 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{success}</span>
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Miembro desde
-              </label>
-              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {profile?.created_at ? format(new Date(profile.created_at), 'dd/MM/yyyy', { locale: es }) : 'N/A'}
-              </div>
-            </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar cambios
+                </>
+              )}
+            </button>
           </div>
-        </div>
+        </form>
+      </div>
 
-        {error && (
-          <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
+      {/* Subscription Plan Section */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Plan de suscripción</h2>
+            <p className="text-gray-500 dark:text-gray-400">Revisa y actualiza tu plan de suscripción</p>
           </div>
-        )}
-
-        {success && (
-          <div className="bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-200 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{success}</span>
-          </div>
-        )}
-
-        <div className="flex justify-end">
           <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => router.push('/dashboard/profile/subscription')}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            {saving ? (
-              <>
-                <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
-                Guardando...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Guardar cambios
-              </>
-            )}
+            <CreditCard className="mr-2 h-4 w-4" />
+            Gestionar suscripción
           </button>
         </div>
-      </form>
+
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center">
+            <CreditCard className="h-10 w-10 text-indigo-500 mr-4" />
+            <div>
+              <div className="text-lg font-semibold text-gray-900 dark:text-white">
+                Plan actual: <span className="text-indigo-600 dark:text-indigo-400">{profile?.subscription_tier ? profile.subscription_tier.charAt(0).toUpperCase() + profile.subscription_tier.slice(1) : 'Free'}</span>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400">
+                {profile?.subscription_tier === 'free' 
+                  ? 'Accede a funcionalidades premium actualizando tu plan' 
+                  : 'Estás disfrutando de todas las funcionalidades premium'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 

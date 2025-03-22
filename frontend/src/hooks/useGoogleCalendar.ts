@@ -5,7 +5,7 @@ import '../patches/node-events-patch';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import {
   getCalendarEvents,
   createCalendarEvent,
@@ -61,8 +61,17 @@ export function useCalendarEvents(startDate: Date, endDate: Date) {
 
 // Hook para crear un evento en el calendario
 export function useCreateCalendarEvent() {
-  const queryClient = useQueryClient();
-
+  const { session } = useAuth();
+  const { toast } = useToast();
+  
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
+  
   return useMutation({
     mutationFn: (event: {
       summary: string;
@@ -73,16 +82,32 @@ export function useCreateCalendarEvent() {
       colorId?: string;
     }) => createCalendarEvent(event),
     onSuccess: () => {
-      // Invalidar consultas relacionadas con eventos del calendario
-      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast({
+        title: 'Evento creado',
+        description: 'El evento ha sido creado en Google Calendar'
+      });
+      
+      // Invalidar consulta de eventos si el queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
     },
   });
 }
 
 // Hook para actualizar un evento en el calendario
 export function useUpdateCalendarEvent() {
-  const queryClient = useQueryClient();
-
+  const { session } = useAuth();
+  const { toast } = useToast();
+  
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
+  
   return useMutation({
     mutationFn: ({
       eventId,
@@ -99,19 +124,44 @@ export function useUpdateCalendarEvent() {
       };
     }) => updateCalendarEvent(eventId, event),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast({
+        title: 'Evento actualizado',
+        description: 'El evento ha sido actualizado en Google Calendar'
+      });
+      
+      // Invalidar consulta de eventos si el queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
     },
   });
 }
 
 // Hook para eliminar un evento del calendario
 export function useDeleteCalendarEvent() {
-  const queryClient = useQueryClient();
-
+  const { session } = useAuth();
+  const { toast } = useToast();
+  
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
+  
   return useMutation({
     mutationFn: (eventId: string) => deleteCalendarEvent(eventId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast({
+        title: 'Evento eliminado',
+        description: 'El evento ha sido eliminado de Google Calendar'
+      });
+      
+      // Invalidar consulta de eventos si el queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
     },
   });
 }
@@ -127,8 +177,17 @@ export function useUserCalendars() {
 
 // Hook para sincronizar una tarea con el calendario
 export function useSyncTaskWithCalendar() {
-  const queryClient = useQueryClient();
-
+  const { session } = useAuth();
+  const { toast } = useToast();
+  
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
+  
   return useMutation({
     mutationFn: (task: {
       id: string;
@@ -139,7 +198,15 @@ export function useSyncTaskWithCalendar() {
       priority: string;
     }) => syncTaskWithCalendar(task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast({
+        title: 'Tarea sincronizada',
+        description: 'La tarea ha sido sincronizada con Google Calendar'
+      });
+      
+      // Invalidar consulta de eventos si el queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
     },
   });
 }
@@ -291,15 +358,11 @@ export function useSyncCalendar() {
   const { session } = useAuth();
   
   // Añadir manejo de error para cuando el QueryClient no está disponible
-  let queryClient;
+  let queryClient: QueryClient | undefined;
   try {
     queryClient = useQueryClient();
   } catch (error) {
-    console.error('QueryClient no disponible. Asegúrate de que este componente esté dentro de un QueryClientProvider.');
-    // Proporcionar un objeto de reemplazo con una función invalidateQueries que no hace nada
-    queryClient = {
-      invalidateQueries: () => {}
-    };
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
   }
   
   const { toast } = useToast();
@@ -375,7 +438,9 @@ export function useSyncCalendar() {
       });
 
       // Invalidar consultas de calendario para refrescar datos
-      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
 
       if (result.success) {
         toast({

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { 
   getHabits, 
   getHabit, 
@@ -15,7 +15,14 @@ import { habitService } from '@/services/habitService';
 import { HabitLog, HabitLogCreate } from '@/types/habit';
 
 export const useHabits = (category?: string) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. Algunas funcionalidades pueden estar limitadas.');
+  }
+  
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(category);
   
   // Obtener todos los hábitos
@@ -64,7 +71,7 @@ export const useHabits = (category?: string) => {
     mutationFn: (habit: HabitCreate) => habitService.createHabit(habit),
     onSuccess: (newHabit) => {
       // Actualizar la caché directamente con el nuevo hábito creado
-      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+      queryClient?.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         const today = new Date().toISOString().split('T')[0];
         const newHabitWithStatus = {
           ...newHabit,
@@ -81,7 +88,7 @@ export const useHabits = (category?: string) => {
       });
       
       // Invalidar la caché para futuras consultas
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient?.invalidateQueries({ queryKey: ['habits'] });
     },
     onError: (error) => {
       console.error('Error al crear hábito en mutation:', error);
@@ -94,7 +101,7 @@ export const useHabits = (category?: string) => {
       habitService.updateHabit({ id, ...rest }),
     onSuccess: (updatedHabit) => {
       // Actualizar la caché directamente
-      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+      queryClient?.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return [updatedHabit];
         
         return oldData.map(habit => 
@@ -103,7 +110,7 @@ export const useHabits = (category?: string) => {
       });
       
       // Invalidar la caché para futuras consultas
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient?.invalidateQueries({ queryKey: ['habits'] });
     },
   });
   
@@ -112,13 +119,13 @@ export const useHabits = (category?: string) => {
     mutationFn: (habitId: string) => habitService.deleteHabit(habitId),
     onSuccess: (_, habitId) => {
       // Actualizar la caché directamente eliminando el hábito
-      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+      queryClient?.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return [];
         return oldData.filter(habit => habit.id !== habitId);
       });
       
       // Invalidar la caché para futuras consultas
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient?.invalidateQueries({ queryKey: ['habits'] });
     },
   });
   
@@ -133,7 +140,7 @@ export const useHabits = (category?: string) => {
       }),
     onSuccess: (newLog, { habitId }) => {
       // Actualizar la caché directamente marcando el hábito como completado
-      queryClient.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
+      queryClient?.setQueryData(['habits'], (oldData: Habit[] | undefined) => {
         if (!oldData) return [];
         
         return oldData.map(habit => 
@@ -142,8 +149,8 @@ export const useHabits = (category?: string) => {
       });
       
       // Invalidar las cachés relacionadas
-      queryClient.invalidateQueries({ queryKey: ['habitLogs', habitId] });
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient?.invalidateQueries({ queryKey: ['habitLogs', habitId] });
+      queryClient?.invalidateQueries({ queryKey: ['habits'] });
     },
   });
   
@@ -238,73 +245,108 @@ export const useGetHabitLogs = (habitId: string) => {
 
 // Hook para crear un nuevo hábito
 export const useCreateHabit = (options?: any) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
   
   return useMutation({
     mutationFn: (newHabit: HabitCreate) => habitService.createHabit(newHabit),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+      }
+      if (options?.onSuccess) options.onSuccess();
     },
-    ...options,
   });
 };
 
 // Hook para actualizar un hábito existente
 export const useUpdateHabit = (options?: any) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
   
   return useMutation({
-    mutationFn: (updateData: HabitUpdate & { id: string }) => habitService.updateHabit(updateData),
-    onSuccess: (updatedHabit: Habit) => {
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
-      queryClient.invalidateQueries({ queryKey: ['habits', updatedHabit.id] });
+    mutationFn: (updateData: HabitUpdate & { id: string }) => 
+      habitService.updateHabit(updateData),
+    onSuccess: () => {
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+      }
+      if (options?.onSuccess) options.onSuccess();
     },
-    ...options,
   });
 };
 
 // Hook para eliminar un hábito
 export const useDeleteHabit = (options?: any) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
   
   return useMutation({
-    mutationFn: (habitId: string) => habitService.deleteHabit(habitId),
-    onSuccess: (_, habitId: string) => {
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
-      queryClient.invalidateQueries({ queryKey: ['habits', habitId] });
-      queryClient.invalidateQueries({ queryKey: ['habitLogs', habitId] });
+    mutationFn: (id: string) => habitService.deleteHabit(id),
+    onSuccess: () => {
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+      }
+      if (options?.onSuccess) options.onSuccess();
     },
-    ...options,
   });
 };
 
 // Hook para registrar un nuevo log de hábito
 export const useLogHabit = (options?: any) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
   
   return useMutation({
     mutationFn: (logData: HabitLogCreate) => habitService.logHabit(logData),
-    onSuccess: (newLog: HabitLog) => {
-      queryClient.invalidateQueries({ queryKey: ['habitLogs', newLog.habit_id] });
-      queryClient.invalidateQueries({ queryKey: ['habits', newLog.habit_id] });
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+    onSuccess: (data) => {
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+        queryClient.invalidateQueries({ queryKey: ['habitLogs', data.habit_id] });
+      }
+      if (options?.onSuccess) options.onSuccess(data);
     },
-    ...options,
   });
 };
 
 // Hook para eliminar un log de hábito
 export const useDeleteHabitLog = (options?: any) => {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. La invalidación de consultas no funcionará.');
+  }
   
   return useMutation({
-    mutationFn: ({ habitId, logId }: { habitId: string, logId: string }) => 
-      habitService.deleteHabitLog(logId),
-    onSuccess: (_, { habitId }: { habitId: string, logId: string }) => {
-      queryClient.invalidateQueries({ queryKey: ['habitLogs', habitId] });
-      queryClient.invalidateQueries({ queryKey: ['habits', habitId] });
-      queryClient.invalidateQueries({ queryKey: ['habits'] });
+    mutationFn: ({habitId, logId}: {habitId: string, logId: string}) => habitService.deleteHabitLog(logId),
+    onSuccess: (_, variables) => {
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['habits'] });
+        queryClient.invalidateQueries({ queryKey: ['habitLogs', variables.habitId] });
+      }
+      if (options?.onSuccess) options.onSuccess();
     },
-    ...options,
   });
 }; 

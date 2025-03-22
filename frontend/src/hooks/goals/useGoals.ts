@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { GoalsService } from '@/lib/goals/goals-service';
 import { useGoalsStore } from '@/store/goals/useGoalsStore';
@@ -6,7 +6,14 @@ import type { Goal, SubGoal, GoalStep } from '@/store/goals/useGoalsStore';
 import { useToast } from '@/components/ui/use-toast';
 
 export function useGoals(userId: string) {
-  const queryClient = useQueryClient();
+  // Manejo seguro de QueryClient
+  let queryClient: QueryClient | undefined;
+  try {
+    queryClient = useQueryClient();
+  } catch (error) {
+    console.warn('QueryClient no disponible. Algunas funcionalidades pueden estar limitadas.');
+  }
+  
   const { toast } = useToast();
   const {
     setGoals,
@@ -45,39 +52,69 @@ export function useGoals(userId: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+    onSuccess: (newGoal: Goal) => {
+      toast({
+        title: 'Meta creada',
+        description: 'La meta se ha creado con éxito',
+      });
+      
+      addGoal(newGoal);
+      
+      // Invalidar consultas solo si queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+      }
     },
   });
 
   const updateGoal = useMutation({
-    mutationFn: async (updatedGoal: Partial<Goal> & { id: string }) => {
+    mutationFn: async (data: { id: string; goal: Partial<Goal> }) => {
       const { data, error } = await supabase
         .from('goals')
-        .update(updatedGoal)
-        .eq('id', updatedGoal.id)
+        .update(data.goal)
+        .eq('id', data.id)
         .select()
         .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+    onSuccess: (updatedGoal: Goal) => {
+      toast({
+        title: 'Meta actualizada',
+        description: 'La meta se ha actualizado con éxito',
+      });
+      
+      updateGoalInStore(updatedGoal);
+      
+      // Invalidar consultas solo si queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+      }
     },
   });
 
   const deleteGoal = useMutation({
-    mutationFn: async (goalId: string) => {
+    mutationFn: async (id: string) => {
       const { error } = await supabase
         .from('goals')
         .delete()
-        .eq('id', goalId);
+        .eq('id', id);
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+    onSuccess: (_, id: string) => {
+      toast({
+        title: 'Meta eliminada',
+        description: 'La meta se ha eliminado con éxito',
+      });
+      
+      deleteGoalFromStore(id);
+      
+      // Invalidar consultas solo si queryClient está disponible
+      if (queryClient) {
+        queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+      }
     },
   });
 
@@ -90,7 +127,7 @@ export function useGoals(userId: string) {
     mutationFn: (subGoal) => GoalsService.createSubGoal(subGoal),
     onSuccess: (data) => {
       addSubGoalToStore(data);
-      queryClient.invalidateQueries({ queryKey: ['goals', userId] });
+      queryClient?.invalidateQueries({ queryKey: ['goals', userId] });
       toast({
         title: 'Success',
         description: 'Sub-goal created successfully',
@@ -115,7 +152,7 @@ export function useGoals(userId: string) {
     mutationFn: (goalStep) => GoalsService.createGoalStep(goalStep),
     onSuccess: (data) => {
       addGoalStepToStore(data);
-      queryClient.invalidateQueries({ queryKey: ['goalSteps', data.goalId] });
+      queryClient?.invalidateQueries({ queryKey: ['goalSteps', data.goalId] });
       toast({
         title: 'Success',
         description: 'Goal step created successfully',
@@ -140,7 +177,7 @@ export function useGoals(userId: string) {
     mutationFn: ({ id, updates }) => GoalsService.updateGoalStep(id, updates),
     onSuccess: (data) => {
       updateGoalStepInStore(data.id, data);
-      queryClient.invalidateQueries({ queryKey: ['goalSteps', data.goalId] });
+      queryClient?.invalidateQueries({ queryKey: ['goalSteps', data.goalId] });
       toast({
         title: 'Success',
         description: 'Goal step updated successfully',
