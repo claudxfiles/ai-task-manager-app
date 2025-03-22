@@ -6,8 +6,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-// Cliente para React Query
-const queryClient = new QueryClient();
+// Cliente para React Query - con configuración de manejo de errores 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 type Theme = 'light' | 'dark';
 

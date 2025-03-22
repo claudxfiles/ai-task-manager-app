@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import { HabitCreate } from '@/types/habit';
 import { habitService } from '@/services/habitService';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-export default function HabitsPage() {
+// Componente interno que utiliza useHabits
+function HabitsPageContent() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { habits, isLoading, error, refetch, createHabit, completeHabit, deleteHabit } = useHabits();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -346,5 +348,24 @@ export default function HabitsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// Crear un cliente de consulta específico para esta página
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Componente principal que envuelve el contenido con el proveedor
+export default function HabitsPage() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <HabitsPageContent />
+    </QueryClientProvider>
   );
 } 
