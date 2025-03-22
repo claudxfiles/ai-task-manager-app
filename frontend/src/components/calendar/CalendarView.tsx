@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Bug, RotateCw } from 'lucide-react';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { CalendarEvent as CalendarEventType, EventSource } from '@/types/calendar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipButton } from './FixedTooltip';
 
 // Crear un QueryClient para este componente específico
 const calendarQueryClient = new QueryClient();
@@ -57,7 +58,7 @@ export function CalendarView() {
 }
 
 // Componente interno que contiene toda la funcionalidad
-function CalendarViewContent() {
+const CalendarViewContent = React.memo(function CalendarViewContent() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'day' | 'week' | 'month'>('week');
   const { toast } = useToast();
@@ -69,28 +70,37 @@ function CalendarViewContent() {
   // Hook de sincronización
   const { syncCalendar, isSyncing, lastSyncStats } = useSyncCalendar();
   
-  // Calcular fechas de inicio y fin según la vista
-  const startDate = view === 'week' 
-    ? startOfWeek(currentDate, { weekStartsOn: 1 }) 
-    : view === 'month'
-      ? new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      : new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0); // Inicio del día
-  
-  const endDate = view === 'week' 
-    ? endOfWeek(currentDate, { weekStartsOn: 1 }) 
-    : view === 'month'
-      ? new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-      : new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59); // Fin del día
+  // Calcular fechas de inicio y fin según la vista - memoizadas para evitar recálculos
+  const { startDate, endDate } = React.useMemo(() => {
+    const start = view === 'week' 
+      ? startOfWeek(currentDate, { weekStartsOn: 1 }) 
+      : view === 'month'
+        ? new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+        : new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0); // Inicio del día
+    
+    const end = view === 'week' 
+      ? endOfWeek(currentDate, { weekStartsOn: 1 }) 
+      : view === 'month'
+        ? new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+        : new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59); // Fin del día
+        
+    return { startDate: start, endDate: end };
+  }, [currentDate, view]);
   
   // Obtener eventos del calendario
   const { data: calendarEvents = [], isLoading, isError, error, refetch } = useCalendarEvents(startDate, endDate);
   
-  // Referencia para controlar el renderizado inicial
-  const isInitialRender = useRef(true);
+  // Referencia para controlar el renderizado inicial y logs
+  const renderRef = useRef({
+    isInitialMount: true,
+    lastLogTime: 0
+  });
   
-  // Efecto para mostrar mensaje de error si ocurre
+  // Efecto para mostrar mensaje de error si ocurre - solo cuando cambia isError o error
   useEffect(() => {
-    if (isError && error instanceof Error) {
+    if (!isError) return;
+    
+    if (error instanceof Error) {
       // Verificar si el mensaje de error indica un problema de reconexión
       if (
         error.message.includes('reconecta tu cuenta') || 
@@ -121,29 +131,34 @@ function CalendarViewContent() {
     }
   }, [isError, error, toast]);
   
-  // Efecto para depurar eventos del calendario
+  // Efecto para depurar eventos del calendario - controlado para evitar spam de logs
   useEffect(() => {
-    // Usar un flag de renderizado para evitar logs duplicados
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
+    // No hacer nada si estamos cargando o hay error
+    if (isLoading || isError) return;
+    
+    // Control para el renderizado inicial y para evitar logs frecuentes
+    const now = Date.now();
+    if (renderRef.current.isInitialMount) {
+      renderRef.current.isInitialMount = false;
+      renderRef.current.lastLogTime = now;
       return;
     }
     
-    // Solo mostrar logs cuando no está cargando y no hay error
-    if (!isLoading && !isError) {
-      if (calendarEvents.length > 0) {
-        console.log(`Eventos cargados (${calendarEvents.length}) para el rango:`, 
-          format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
-      } else {
-        // Evitar spam de logs "No se encontraron eventos"
-        console.debug('No se encontraron eventos para el rango:', 
-          format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
-      }
+    // Limitar logs a uno cada 5 segundos como máximo
+    const timeSinceLastLog = now - renderRef.current.lastLogTime;
+    if (timeSinceLastLog < 5000) return;
+    
+    renderRef.current.lastLogTime = now;
+    
+    // Solo mostrar logs cuando hay eventos (usar console.debug)
+    if (calendarEvents.length > 0) {
+      console.debug(`Eventos cargados (${calendarEvents.length}) para el rango:`, 
+        format(startDate, 'dd/MM/yyyy'), 'hasta', format(endDate, 'dd/MM/yyyy'));
     }
   }, [calendarEvents, startDate, endDate, isLoading, isError]);
   
-  // Función para navegar por las fechas
-  const navigate = (direction: 'prev' | 'next') => {
+  // Función para navegar por las fechas - memoizada para evitar recreaciones
+  const navigate = useCallback((direction: 'prev' | 'next') => {
     if (view === 'week') {
       setCurrentDate(direction === 'prev' ? subWeeks(currentDate, 1) : addWeeks(currentDate, 1));
     } else if (view === 'month') {
@@ -151,10 +166,10 @@ function CalendarViewContent() {
     } else {
       setCurrentDate(direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1));
     }
-  };
+  }, [currentDate, view]);
   
-  // Función para sincronizar manualmente el calendario
-  const handleSync = async () => {
+  // Función para sincronizar manualmente el calendario - memoizada
+  const handleSync = useCallback(async () => {
     if (!isConnected) {
       toast({
         title: "No conectado",
@@ -184,10 +199,10 @@ function CalendarViewContent() {
     
     // Iniciar sincronización
     await syncCalendar(syncStartDate, syncEndDate);
-  };
+  }, [isConnected, needsReconnect, startDate, endDate, syncCalendar, toast, view]);
   
-  // Formatea el encabezado de fecha según la vista
-  function formatDateHeader() {
+  // Formatea el encabezado de fecha según la vista - memoizado
+  const formatDateHeader = useCallback(() => {
     if (view === 'day') {
       return format(currentDate, 'EEEE, d MMMM yyyy', { locale: es });
     } else if (view === 'week') {
@@ -197,7 +212,7 @@ function CalendarViewContent() {
     } else {
       return format(currentDate, 'MMMM yyyy', { locale: es });
     }
-  }
+  }, [currentDate, view]);
   
   // Render de la vista diaria
   function renderDayView() {
@@ -461,23 +476,13 @@ function CalendarViewContent() {
             <Button variant="ghost" size="icon" onClick={() => navigate('next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={handleSync}
-                    disabled={!isConnected || needsReconnect || isSyncing}
-                  >
-                    {isSyncing ? <RotateCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Sincronizar con Google Calendar</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <TooltipButton
+              onClick={handleSync}
+              disabled={!isConnected || needsReconnect || isSyncing}
+              content="Sincronizar con Google Calendar"
+            >
+              {isSyncing ? <RotateCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </TooltipButton>
           </div>
         </div>
 
@@ -516,4 +521,4 @@ function CalendarViewContent() {
       </CardContent>
     </Card>
   );
-} 
+}); 

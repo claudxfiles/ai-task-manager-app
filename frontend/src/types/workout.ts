@@ -1,16 +1,5 @@
-import { Database } from './supabase';
-
-// Tipos básicos de Supabase
-export type Workout = Database['public']['Tables']['workouts']['Row'];
-export type WorkoutExercise = Database['public']['Tables']['workout_exercises']['Row'];
-export type ExerciseTemplate = Database['public']['Tables']['exercise_templates']['Row'];
-export type WorkoutTemplate = Database['public']['Tables']['workout_templates']['Row'];
-export type WorkoutTemplateExercise = Database['public']['Tables']['workout_template_exercises']['Row'];
-export type WorkoutProgress = Database['public']['Tables']['workout_progress']['Row'];
-
-// Tipos para inserciones
-export type WorkoutInsert = Database['public']['Tables']['workouts']['Insert'];
-export type WorkoutExerciseInsert = Database['public']['Tables']['workout_exercises']['Insert'];
+// Tipos básicos para la aplicación - No necesitamos importar Database desde supabase aquí
+// ya que estamos definiendo nuestros propios tipos
 
 /**
  * Tipos relacionados con entrenamientos
@@ -45,6 +34,24 @@ export enum MuscleGroup {
   CARDIO = 'cardio'
 }
 
+// Mapeo de grupos musculares a sus imágenes
+export const muscleGroupImages: Record<string, string> = {
+  [MuscleGroup.ABS]: '/image-workout/abs.png',
+  [MuscleGroup.BICEPS]: '/image-workout/Biceps.png',
+  [MuscleGroup.CALVES]: '/image-workout/Calves.png',
+  [MuscleGroup.CHEST]: '/image-workout/Chest.png',
+  [MuscleGroup.FOREARMS]: '/image-workout/forearms.png',
+  [MuscleGroup.GLUTES]: '/image-workout/Glutes.png',
+  [MuscleGroup.HAMSTRING]: '/image-workout/Hamstring.png', 
+  [MuscleGroup.OBLIQUES]: '/image-workout/Obliques.png',
+  [MuscleGroup.QUADRICEPS]: '/image-workout/Quadriceps.png',
+  [MuscleGroup.SHOULDER]: '/image-workout/Shoulder.png',
+  [MuscleGroup.TRICEPS]: '/image-workout/triceps.png',
+  [MuscleGroup.BACK]: '/image-workout/back.webp',
+  [MuscleGroup.FULL_BODY]: '/image-workout/full_body.webp',
+  [MuscleGroup.CARDIO]: '/image-workout/cardio.webp'
+};
+
 export enum ExerciseType {
   STRENGTH = 'strength',
   CARDIO = 'cardio',
@@ -73,6 +80,8 @@ export interface Workout {
   workout_type: WorkoutType;
   related_goal_id?: string;
   rating?: number;
+  muscle_groups?: string[];
+  notes?: string;
 }
 
 export interface WorkoutExercise {
@@ -83,6 +92,8 @@ export interface WorkoutExercise {
   reps: number;
   weight?: number;
   duration_seconds?: number;
+  distance?: number;
+  units?: string;
   rest_seconds: number;
   order_index: number;
   notes?: string;
@@ -93,6 +104,10 @@ export interface WorkoutExercise {
 export interface WorkoutWithExercises extends Workout {
   exercises: WorkoutExercise[];
 }
+
+// Tipos para inserciones
+export type WorkoutInsert = Omit<Workout, 'id' | 'created_at'>;
+export type WorkoutExerciseInsert = Omit<WorkoutExercise, 'id' | 'created_at' | 'updated_at'>;
 
 // Tipo para ser usado en contexto del asistente de IA
 export interface WorkoutData extends WorkoutWithExercises {
@@ -115,6 +130,7 @@ export interface WorkoutTemplate {
   updated_at: string;
   is_public: boolean;
   tags?: string[];
+  muscle_groups?: string[];
 }
 
 export interface WorkoutTemplateExercise {

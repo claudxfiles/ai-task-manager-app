@@ -18,6 +18,7 @@ import {
   SyncType
 } from '@/lib/calendar-service';
 import { useToast } from '@/components/ui/use-toast';
+import React from 'react';
 
 // Tipo para el token de Google
 interface GoogleToken {
@@ -225,31 +226,33 @@ export function useGoogleCalendarStatus() {
     expiryDate: undefined
   });
   
-  // Agregamos un ref para evitar logs duplicados
-  const prevStatusRef = useRef<{
-    isConnected: boolean;
-    isTokenExpired: boolean;
-    expiryDate?: string;
-    componentId?: string;
+  // Agregamos un ref para evitar logs duplicados y establecer un identificador estable
+  const instanceRef = useRef<{
+    id: string;
+    lastLogTime: number;
+    lastStatus?: {
+      isConnected: boolean;
+      isTokenExpired: boolean;
+      expiryDate?: string;
+    }
   }>({
-    isConnected: false,
-    isTokenExpired: true,
-    expiryDate: undefined
+    id: Math.random().toString(36).substring(2, 9), // ID único para esta instancia
+    lastLogTime: 0, // Tiempo del último log para evitar spam
+    lastStatus: undefined
   });
   
   // Obtener la información del token de la sesión, si está disponible
   const googleToken = session?.user?.user_metadata?.google_token as GoogleToken | undefined;
   const userId = session?.user?.id;
   
-  // Verificar estado de conexión actual basado en la sesión (método original)
-  const sessionBasedConnected = !!googleToken?.access_token;
-  const sessionBasedExpired = googleToken?.expires_at ? googleToken.expires_at < Date.now() / 1000 : true;
-  
   // Efecto para verificar el estado de la integración con Google Calendar
   useEffect(() => {
+    // Control de debounce para evitar múltiples llamadas
+    let isMounted = true;
+    
     async function checkCalendarStatus() {
       // Si tenemos el token en la sesión, usamos esa información
-      if (googleToken) {
+      if (googleToken && isMounted) {
         setCalendarStatus({
           isConnected: !!googleToken.access_token,
           isTokenExpired: googleToken.expires_at ? googleToken.expires_at < Date.now() / 1000 : true,
@@ -258,12 +261,12 @@ export function useGoogleCalendarStatus() {
         setStatusChecked(true);
       } 
       // Si no tenemos token en sesión pero tenemos userId, intentamos con API
-      else if (userId) {
+      else if (userId && isMounted) {
         try {
           // Llamar a nuestra nueva API para verificar estado de integración
           const response = await fetch(`/api/v1/auth/user-metadata?userId=${userId}`);
           
-          if (response.ok) {
+          if (response.ok && isMounted) {
             const data = await response.json();
             const token = data.google_token;
             
@@ -279,7 +282,7 @@ export function useGoogleCalendarStatus() {
                 isTokenExpired: true
               });
             }
-          } else {
+          } else if (isMounted) {
             // Si hay error, asumimos que no hay conexión
             setCalendarStatus({
               isConnected: false,
@@ -288,56 +291,70 @@ export function useGoogleCalendarStatus() {
           }
         } catch (error) {
           console.error('Error verificando estado de calendario:', error);
-          setCalendarStatus({
-            isConnected: false,
-            isTokenExpired: true
-          });
+          if (isMounted) {
+            setCalendarStatus({
+              isConnected: false,
+              isTokenExpired: true
+            });
+          }
         } finally {
-          setStatusChecked(true);
+          if (isMounted) {
+            setStatusChecked(true);
+          }
         }
       }
     }
     
     checkCalendarStatus();
+    
+    // Limpieza para evitar actualizaciones de estado en componentes desmontados
+    return () => {
+      isMounted = false;
+    };
   }, [userId, googleToken]);
   
-  // Modificado: usar useEffect con comprobación de cambios reales para evitar logs duplicados
+  // Efecto para logs controlados
   useEffect(() => {
-    if (!session) return;
+    if (!session || !statusChecked) return;
     
     // Formatear expiryDate para comparación
     const currentExpiryStr = calendarStatus.expiryDate?.toLocaleString();
     
-    // Verificar si el estado ha cambiado realmente
-    const hasChanged = 
-      calendarStatus.isConnected !== prevStatusRef.current.isConnected ||
-      calendarStatus.isTokenExpired !== prevStatusRef.current.isTokenExpired ||
-      currentExpiryStr !== prevStatusRef.current.expiryDate;
+    // Verificar si el estado actual es diferente del último registrado
+    const lastStatus = instanceRef.current.lastStatus;
+    const hasChanged = !lastStatus || 
+      calendarStatus.isConnected !== lastStatus.isConnected || 
+      calendarStatus.isTokenExpired !== lastStatus.isTokenExpired || 
+      currentExpiryStr !== lastStatus.expiryDate;
     
-    // Solo generar logs cuando hay un cambio real de estado
-    if (hasChanged) {
-      // Actualizar la referencia para evitar logs duplicados
-      prevStatusRef.current = {
+    // Asegurarse de que no hagamos spam de logs (mínimo 5 segundos entre logs)
+    const now = Date.now();
+    const timeSinceLastLog = now - instanceRef.current.lastLogTime;
+    const canLog = hasChanged && timeSinceLastLog > 5000;
+    
+    if (canLog) {
+      // Actualizar la referencia
+      instanceRef.current.lastStatus = {
         isConnected: calendarStatus.isConnected,
         isTokenExpired: calendarStatus.isTokenExpired,
-        expiryDate: currentExpiryStr,
-        componentId: prevStatusRef.current.componentId
+        expiryDate: currentExpiryStr
       };
+      instanceRef.current.lastLogTime = now;
       
-      // Registrar el estado solo cuando cambia
+      // Los logs ahora son de nivel debug para reducir el ruido en la consola
       if (calendarStatus.isConnected) {
-        console.log(
-          `[CalendarStatus:${prevStatusRef.current.componentId}] Estado de conexión con Google Calendar: Conectado`
+        console.debug(
+          `[CalendarStatus:${instanceRef.current.id}] Estado de conexión con Google Calendar: Conectado`
         );
         
         if (calendarStatus.expiryDate) {
-          console.log(
-            `[CalendarStatus:${prevStatusRef.current.componentId}] Token Google disponible, expira: ${calendarStatus.expiryDate.toLocaleString()}`
+          console.debug(
+            `[CalendarStatus:${instanceRef.current.id}] Token Google disponible, expira: ${calendarStatus.expiryDate.toLocaleString()}`
           );
         }
       } else {
-        console.log(
-          `[CalendarStatus:${prevStatusRef.current.componentId}] Estado de conexión con Google Calendar: ${
+        console.debug(
+          `[CalendarStatus:${instanceRef.current.id}] Estado de conexión con Google Calendar: ${
             !statusChecked ? 'Verificando...' : 'No conectado'
           }`
         );
@@ -345,12 +362,19 @@ export function useGoogleCalendarStatus() {
     }
   }, [calendarStatus, session, statusChecked]);
   
-  return {
+  // Usar useMemo para evitar que los cambios en las referencias causen re-renders
+  const statusResult = React.useMemo(() => ({
     isConnected: calendarStatus.isConnected,
     isTokenExpired: calendarStatus.isTokenExpired,
     needsReconnect: calendarStatus.isConnected && calendarStatus.isTokenExpired,
     statusChecked
-  };
+  }), [
+    calendarStatus.isConnected,
+    calendarStatus.isTokenExpired,
+    statusChecked
+  ]);
+  
+  return statusResult;
 }
 
 // Hook para sincronizar calendario
