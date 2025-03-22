@@ -224,12 +224,14 @@ export function CreateGoalDialog({ isOpen, onClose }: CreateGoalDialogProps) {
                               !field.value && 'text-muted-foreground'
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <div className="flex items-center justify-between w-full">
+                              {field.value ? (
+                                format(field.value, 'PPP')
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="h-4 w-4 opacity-50" />
+                            </div>
                           </Button>
                         </FormControl>
                       </PopoverTrigger>

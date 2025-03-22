@@ -159,7 +159,9 @@ export function ContactForm() {
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un asunto" />
+                    <div className="w-full">
+                      <SelectValue placeholder="Selecciona un asunto" />
+                    </div>
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
