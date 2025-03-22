@@ -1,12 +1,12 @@
 # Análisis de tu Proyecto
-Fecha: Fri Mar 21 21:53:59 -03 2025
+Fecha: Fri Mar 21 22:17:50 -03 2025
 
 ## Estructura del Proyecto
 
 ### Archivos por Tipo
-- TypeScript: 89 archivos
-- React (TSX): 163 archivos
-- JavaScript: 127 archivos
+- TypeScript: 93 archivos
+- React (TSX): 164 archivos
+- JavaScript: 217 archivos
 - React (JSX): 0 archivos
 - SCSS: 0 archivos
 - CSS: 5 archivos
@@ -14,11 +14,11 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
 ### Complejidad de Archivos
 **Archivos más grandes (por líneas de código):**
 ```
+9606 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/workout/page.js
+8504 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/googleapis.js
 5128 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/page.js
-3458 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/finance/page.js
-3106 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/ai-assistant/page.js
-2530 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
-2402 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/calendar/page.js
+2938 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/vendor-chunks/next.js
+2413 /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/static/chunks/app/dashboard/calendar/page.js
 ```
 
 ## Tecnologías Detectadas
@@ -26,7 +26,7 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
   - Versión: ^15.2.3
 - ✅ React detectado
   - Versión: ^19.0.0
-  - Aproximadamente 153 componentes definidos
+  - Aproximadamente 154 componentes definidos
   - 26 hooks personalizados detectados
   - Biblioteca UI: Shadcn UI detectada
 - ✅ Tailwind CSS detectado
@@ -43,7 +43,7 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
 - ✅ OpenRouter detectado
   - ✅ Configuración con provider.order
   - ✅ Proveedores: Groq, Fireworks
-  - Aproximadamente 3 prompts/conversaciones definidos
+  - Aproximadamente 10 prompts/conversaciones definidos
   - ✅ Modelo: qwen/qwq-32b:online
   - ✅ Modelo referenciado como variable
 - ✅ Integración IA: OpenRouter
@@ -55,15 +55,15 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
   - Implementación: 95%
 - ✅ Google APIs detectadas
   - ✅ Autenticación Google implementada
-  - 13 referencias a scopes OAuth detectadas
+  - 19 referencias a scopes OAuth detectadas
   - ✅ Google Calendar implementado
   - Operaciones Calendar detectadas:
     - Crear eventos: 5 referencias
     - Listar eventos: 5 referencias
-    - Actualizar eventos: 1 referencias
-    - Eliminar eventos: 5 referencias
+    - Actualizar eventos: 7 referencias
+    - Eliminar eventos: 11 referencias
     - ✅ Renovación de tokens implementada
-    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/src/lib/calendar-ser...
+    - Mecanismo: /home/claudxfiles/Documents/AI/ai-task-manager-app/frontend/.next/server/app/das...
     - ✅ Sincronización bidireccional implementada
   - Implementación Calendar: 85%
   - ✅ Gmail API detectada
@@ -79,11 +79,11 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
   - 8 componentes utilizan optimización de imágenes
 - ✅ Server/Client Components configurados
   - 0 Server Actions implementadas
-  - 132 componentes marcados como Client Components
+  - 133 componentes marcados como Client Components
 - ✅ Suspense y Loading States implementados
   - 0 páginas con estados de carga definidos
-- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 20 referencias
-- ✅ Optimizaciones de funciones (useCallback) implementadas: 15 referencias
+- ✅ Optimizaciones de renderizado (memo/useMemo) implementadas: 35 referencias
+- ✅ Optimizaciones de funciones (useCallback) implementadas: 19 referencias
 
 ## Estado Global del Proyecto
 
@@ -97,7 +97,7 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
 - ⚠️ ESLint no detectado
 ## Problemas Detectados
 
-- **P001** 🟢 console.log en código: 118
+- **P001** 🟢 console.log en código: 114
 - **P002** 🟡 Uso excesivo de 'any' en TypeScript: 110 ocurrencias
 
 ## Dependencias y Paquetes
@@ -106,7 +106,7 @@ Fecha: Fri Mar 21 21:53:59 -03 2025
 - Dependencias de desarrollo: aproximadamente 3
 ## Recomendaciones Prioritarias
 
-5. **Baja prioridad:** Eliminar los 118 console.log del código para producción
+5. **Baja prioridad:** Eliminar los 114 console.log del código para producción
 6. **Media prioridad:** Implementar pruebas unitarias y de integración para componentes clave
 
 ## Próximas Fases de Desarrollo
@@ -150,7 +150,7 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ### Áreas de Mejora
 
-- **Limpieza de código:** Eliminar los 118 console.log del código para producción
+- **Limpieza de código:** Eliminar los 114 console.log del código para producción
 - **Cobertura de pruebas:** Implementar pruebas unitarias y de integración
 - **Completar integración de pagos:** Mejorar la implementación de PayPal (actualmente al 70%)
 
@@ -163,6 +163,6 @@ Para mejorar el rendimiento con OpenRouter y los proveedores Groq y Fireworks, c
 
 ## Resumen
 
-Este análisis se generó automáticamente el Fri Mar 21 21:54:11 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
+Este análisis se generó automáticamente el Fri Mar 21 22:18:01 -03 2025 examinando el código de tu proyecto. Los resultados se basan en patrones detectados en tu código fuente.
 
 Para obtener recomendaciones detalladas sobre cómo resolver los problemas identificados, consulta los documentos específicos enlazados en cada recomendación o implementa las soluciones sugeridas en la sección de optimizaciones.

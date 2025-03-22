@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CheckCircle, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LandingButton } from '@/components/landing/LandingButton';
 
 interface PlanFeature {
   text: string;
@@ -166,18 +166,16 @@ export function PricingSection() {
                 </ul>
                 
                 <div className="mt-8">
-                  <Button 
-                    asChild
-                    size="lg" 
+                  <LandingButton 
+                    href={plan.href}
+                    variant={plan.popular ? 'primary' : 'outline'}
                     className={`w-full ${plan.popular 
                       ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white' 
                       : ''}`}
-                    variant={plan.popular ? 'default' : 'outline'}
+                    size="lg"
                   >
-                    <Link href={plan.href}>
-                      {plan.cta} <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
-                  </Button>
+                    {plan.cta} <ChevronRight className="ml-1 h-4 w-4" />
+                  </LandingButton>
                 </div>
               </div>
             </motion.div>

@@ -23,7 +23,7 @@ import { PricingSection } from '@/components/landing/pricing/PricingSection';
 import { FaqSection } from '@/components/landing/faq/FaqSection';
 import { Footer } from '@/components/landing/footer/Footer';
 import { FadeInWhenVisible } from '@/components/shared/FadeInWhenVisible';
-import Link from 'next/link';
+import { LandingButton } from '@/components/landing/LandingButton';
 
 export default function Home() {
   return (
@@ -84,15 +84,22 @@ export default function Home() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
               >
-                <Link href="/auth/register" className="relative inline-flex group items-center justify-center px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-medium shadow-lg hover:shadow-indigo-500/25 transition-all duration-300 hover:-translate-y-1">
+                <LandingButton 
+                  href="/auth/register" 
+                  className="relative group"
+                  variant="primary"
+                >
                   <span>Comenzar gratis</span>
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   <span className="absolute -inset-0.5 -z-10 rounded-lg bg-gradient-to-r from-indigo-500 to-emerald-500 opacity-30 blur group-hover:opacity-50 transition duration-300"></span>
-                </Link>
+                </LandingButton>
                 
-                <Link href="#features" className="px-6 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300">
+                <LandingButton 
+                  href="#features" 
+                  variant="outline"
+                >
                   Ver funcionalidades
-                </Link>
+                </LandingButton>
               </motion.div>
               
               <motion.div 

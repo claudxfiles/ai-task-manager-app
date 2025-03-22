@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Menu, X, Moon, Sun } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LandingButton } from '@/components/landing/LandingButton';
 import { useTheme } from '@/app/providers';
 
 export function Navbar() {
@@ -89,11 +89,9 @@ export function Navbar() {
               Iniciar sesión
             </Link>
             
-            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-              <Link href="/auth/register">
-                Registrarse
-              </Link>
-            </Button>
+            <LandingButton href="/auth/register" variant="primary">
+              Registrarse
+            </LandingButton>
           </div>
           
           {/* Botón de menú móvil */}
@@ -167,14 +165,13 @@ export function Navbar() {
                 Iniciar sesión
               </Link>
               
-              <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700">
-                <Link 
-                  href="/auth/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Registrarse
-                </Link>
-              </Button>
+              <LandingButton 
+                href="/auth/register" 
+                size="sm" 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Registrarse
+              </LandingButton>
             </div>
           </div>
         </motion.div>

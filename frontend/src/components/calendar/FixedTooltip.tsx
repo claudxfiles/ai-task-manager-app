@@ -15,13 +15,13 @@ type FixedTooltipProps = {
 };
 
 export function FixedTooltip({ content, children }: FixedTooltipProps) {
-  // Envolver el children en un div para asegurarnos de que es un único elemento
+  // Make sure we're always passing a single child element to TooltipTrigger
   return (
     <TooltipProvider>
       <TooltipRoot>
         <TooltipTrigger asChild>
-          {/* Pasamos un único elemento React como hijo */}
-          <span>{children}</span>
+          {/* The div ensures we always have a single React element as the child */}
+          <div className="inline-block">{children}</div>
         </TooltipTrigger>
         <TooltipContent>
           {content}
@@ -31,7 +31,7 @@ export function FixedTooltip({ content, children }: FixedTooltipProps) {
   );
 }
 
-// Componente especializado para botones con tooltip
+// Specialized component for buttons with tooltips
 type TooltipButtonProps = {
   content: React.ReactNode;
   children: React.ReactNode;
@@ -59,7 +59,8 @@ export function TooltipButton({
             onClick={onClick}
             disabled={disabled}
           >
-            {children}
+            {/* Ensure children is a single React element or primitive */}
+            {React.Children.count(children) > 1 ? <span>{children}</span> : children}
           </Button>
         </TooltipTrigger>
         <TooltipContent>

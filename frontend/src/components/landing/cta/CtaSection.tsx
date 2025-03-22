@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LandingButton } from '@/components/landing/LandingButton';
 
 export function CtaSection() {
   const [mounted, setMounted] = useState(false);

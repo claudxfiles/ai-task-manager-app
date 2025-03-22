@@ -41,6 +41,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
+  TooltipRoot,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
@@ -287,14 +288,16 @@ export function SavingsCalculator() {
                   <div className="flex justify-between items-center">
                     <Label htmlFor="targetAmount">Meta de ahorro</Label>
                     <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className="h-4 w-4 text-muted-foreground" />
+                      <TooltipRoot>
+                        <TooltipTrigger asChild>
+                          <button type="button">
+                            <Info className="h-4 w-4 text-muted-foreground" />
+                          </button>
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">Cantidad que deseas ahorrar en total</p>
                         </TooltipContent>
-                      </Tooltip>
+                      </TooltipRoot>
                     </TooltipProvider>
                   </div>
                   <div className="relative">

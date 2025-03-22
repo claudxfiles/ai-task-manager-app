@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LandingButton } from '@/components/landing/LandingButton';
 
 export function Hero() {
   const [mounted, setMounted] = useState(false);
@@ -61,17 +61,22 @@ export function Hero() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.5 }}
             >
-              <Button asChild size="lg" className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg">
-                <Link href="/auth/register">
-                  Comenzar gratis <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              <LandingButton
+                href="/auth/register"
+                size="lg"
+                className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg"
+              >
+                Comenzar gratis
+              </LandingButton>
               
-              <Button asChild variant="outline" size="lg" className="rounded-lg">
-                <a href="#features">
-                  Ver funcionalidades
-                </a>
-              </Button>
+              <LandingButton
+                href="#features"
+                variant="outline"
+                size="lg"
+                className="rounded-lg"
+              >
+                Ver funcionalidades
+              </LandingButton>
             </motion.div>
             
             <motion.div 
